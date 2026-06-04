@@ -36,7 +36,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
         'X-Title': 'PUSPALOY Admin',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.0-flash-001',
+        model: 'openai/gpt-4o-mini',
         messages: [{
           role: 'user',
           content: `Write a compelling, luxury product description for a Bangladeshi e-commerce brand called PUSPALOY. 
