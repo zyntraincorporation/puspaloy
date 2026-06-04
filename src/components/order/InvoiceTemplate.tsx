@@ -15,8 +15,8 @@ interface InvoiceTemplateProps {
 function LogoMark() {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-600 flex items-center justify-center">
-        <span className="text-white font-bold text-lg" style={{ fontFamily: 'serif' }}>P</span>
+      <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden">
+        <img src="/favicon.svg" alt="Puspaloy Logo" className="w-full h-full object-contain" />
       </div>
       <div>
         <p className="font-serif text-xl font-bold tracking-widest" style={{ color: '#be185d' }}>PUSPALOY</p>

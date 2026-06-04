@@ -46,8 +46,8 @@ export default function Navbar() {
           <div className="container-luxury h-full flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-full bg-gradient-luxury flex items-center justify-center">
-              <span className="font-display text-white text-sm font-bold">P</span>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden">
+              <img src="/favicon.svg" alt="Puspaloy Logo" className="w-full h-full object-contain" />
             </div>
             <span className="font-serif text-xl font-semibold text-[var(--text-primary)] group-hover:text-gradient-gold transition-all duration-300">
               PUSPALOY

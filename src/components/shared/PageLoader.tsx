@@ -25,8 +25,8 @@ export default function PageLoader() {
             transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
             style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }}
           />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="font-display text-lg font-bold text-gradient-gold">P</span>
+          <div className="relative z-10 w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-luxury overflow-hidden p-2">
+            <img src="/favicon.svg" alt="Loading" className="w-full h-full object-contain animate-pulse" />
           </div>
         </div>
         <p className="font-serif text-sm tracking-widest text-[var(--text-muted)] uppercase">

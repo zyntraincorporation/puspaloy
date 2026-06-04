@@ -50,8 +50,8 @@ export default function Footer() {
           {/* Brand column */}
           <motion.div variants={fadeInUp} className="sm:col-span-2 lg:col-span-1">
             <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-full bg-gradient-luxury flex items-center justify-center">
-                <span className="font-display text-white font-bold">P</span>
+              <div className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden">
+                <img src="/favicon.svg" alt="Puspaloy Logo" className="w-full h-full object-contain" />
               </div>
               <span className="font-serif text-2xl font-semibold text-[var(--text-primary)]">
                 PUSPALOY

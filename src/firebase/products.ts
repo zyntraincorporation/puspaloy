@@ -45,19 +45,27 @@ export async function getProductsByCategory(
   pageSize = 24,
   lastDoc?: DocumentSnapshot
 ) {
-  const constraints = [
-    where('category', '==', category),
-    where('status', '==', 'active'),
-    orderBy('createdAt', 'desc'),
-    limit(pageSize),
-  ]
-  if (lastDoc) constraints.push(startAfter(lastDoc) as never)
-  const q = query(collection(db, PRODUCTS_COL), ...constraints)
+  // Use a single-field query to avoid requiring composite indexes
+  const q = query(
+    collection(db, PRODUCTS_COL),
+    where('category', '==', category)
+  )
   const snap = await getDocs(q)
+  
+  // Filter active and sort by createdAt client-side
+  let products = snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as Product))
+    .filter((p) => p.status === 'active')
+    .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())
+
+  // Handle client-side pagination
+  const startIndex = lastDoc ? products.findIndex((p) => p.id === lastDoc.id) + 1 : 0
+  const paginatedProducts = products.slice(startIndex, startIndex + pageSize)
+  
   return {
-    products: snap.docs.map((d) => ({ id: d.id, ...d.data() } as Product)),
-    lastDoc: snap.docs[snap.docs.length - 1] ?? null,
-    hasMore: snap.docs.length === pageSize,
+    products: paginatedProducts,
+    lastDoc: snap.docs.find(d => d.id === paginatedProducts[paginatedProducts.length - 1]?.id) ?? null,
+    hasMore: startIndex + pageSize < products.length,
   }
 }
 
@@ -69,14 +77,15 @@ export async function getFeaturedProducts(ids: string[]): Promise<Product[]> {
 }
 
 export async function getAllActiveProductsLite(): Promise<ProductLite[]> {
+  // Use a single-field query to avoid composite indexes
   const q = query(
     collection(db, PRODUCTS_COL),
-    where('status', '==', 'active'),
-    orderBy('createdAt', 'desc'),
-    limit(200)
+    where('status', '==', 'active')
   )
   const snap = await getDocs(q)
-  return snap.docs.map((d) => {
+  
+  // Sort client-side
+  const products = snap.docs.map((d) => {
     const data = d.data()
     return {
       id: d.id,
@@ -97,19 +106,29 @@ export async function getAllActiveProductsLite(): Promise<ProductLite[]> {
       featured: data.featured ?? false,
       status: data.status,
       stock: data.stock ?? 0,
-    } as ProductLite
+      createdAt: data.createdAt,
+    } as ProductLite & { createdAt: any }
   })
+  
+  return products
+    .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())
+    .slice(0, 200)
 }
 
 export async function getFlashSaleProducts(): Promise<Product[]> {
+  // Use a single-field query to avoid composite indexes
   const q = query(
     collection(db, PRODUCTS_COL),
-    where('flashSaleId', '!=', null),
-    where('status', '==', 'active'),
-    limit(12)
+    where('status', '==', 'active')
   )
   const snap = await getDocs(q)
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Product))
+  
+  // Filter for flash sale items client-side
+  const products = snap.docs
+    .map((d) => ({ id: d.id, ...d.data() } as Product))
+    .filter((p) => p.flashSaleId != null)
+    
+  return products.slice(0, 12)
 }
 
 // Admin: get all products (including drafts)
