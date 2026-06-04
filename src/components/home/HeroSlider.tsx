@@ -50,7 +50,7 @@ interface HeroSliderProps {
 }
 
 export default function HeroSlider({ banners }: HeroSliderProps) {
-  const slides = (banners ?? FALLBACK_BANNERS).filter((b) => b.active)
+  const slides = (banners && banners.length > 0 ? banners : FALLBACK_BANNERS).filter((b) => b.active)
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {

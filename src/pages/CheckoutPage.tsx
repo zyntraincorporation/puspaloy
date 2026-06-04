@@ -1,6 +1,6 @@
 // src/pages/CheckoutPage.tsx
 // Full checkout: customer info, district, dynamic delivery charge, coupon, COD, order creation
-import { useState, useEffect } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import SEO from '@/components/shared/SEO'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -62,6 +62,7 @@ function FieldError({ msg }: { msg?: string }) {
 export default function CheckoutPage() {
   const navigate = useNavigate()
   const { items, getSubtotal, clearCart } = useCartStore()
+  const hasPlacedOrder = useRef(false)
   const { data: deliverySettings } = useDeliverySettings()
   const { toast } = useToast()
 
@@ -83,7 +84,7 @@ export default function CheckoutPage() {
 
   // Redirect if cart is empty
   useEffect(() => {
-    if (items.length === 0) navigate('/cart')
+    if (items.length === 0 && !hasPlacedOrder.current) navigate('/cart')
   }, [items.length, navigate])
 
   const setField = (field: keyof FormData, value: string) => {
@@ -206,6 +207,7 @@ export default function CheckoutPage() {
         await incrementCouponUsage(appliedCoupon.id).catch(() => {})
       }
 
+      hasPlacedOrder.current = true
       clearCart()
       navigate(`/order-confirmation/${orderId}`)
     } catch (err) {

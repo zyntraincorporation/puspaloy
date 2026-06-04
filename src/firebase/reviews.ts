@@ -34,23 +34,26 @@ export async function submitReview(
 export async function getApprovedReviews(productId: string): Promise<Review[]> {
   const q = query(
     collection(db, REVIEWS_COL),
-    where('productId', '==', productId),
-    where('status', '==', 'approved'),
-    orderBy('createdAt', 'desc'),
-    limit(20)
+    where('productId', '==', productId)
   )
   const snap = await getDocs(q)
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Review))
+  let reviews = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Review))
+  
+  reviews = reviews.filter(r => r.status === 'approved')
+  reviews.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0))
+  
+  return reviews.slice(0, 20)
 }
 
 export async function getPendingReviews(): Promise<Review[]> {
   const q = query(
     collection(db, REVIEWS_COL),
-    where('status', '==', 'pending'),
-    orderBy('createdAt', 'asc')
+    where('status', '==', 'pending')
   )
   const snap = await getDocs(q)
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Review))
+  const reviews = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Review))
+  
+  return reviews.sort((a, b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0))
 }
 
 export async function getAllReviewsAdmin(): Promise<Review[]> {

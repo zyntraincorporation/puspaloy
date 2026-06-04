@@ -132,6 +132,17 @@ export async function getFlashSaleProducts(): Promise<Product[]> {
   return products.slice(0, 12)
 }
 
+export async function getActiveFlashSale(): Promise<any | null> {
+  const q = query(
+    collection(db, 'flashSales'),
+    where('active', '==', true),
+    limit(1)
+  )
+  const snap = await getDocs(q)
+  if (snap.empty) return null
+  return { id: snap.docs[0].id, ...snap.docs[0].data() }
+}
+
 // Admin: get all products (including drafts)
 export async function getAllProductsAdmin(pageSize = 50, lastDoc?: DocumentSnapshot) {
   const constraints = [orderBy('createdAt', 'desc'), limit(pageSize)]

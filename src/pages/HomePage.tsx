@@ -18,7 +18,7 @@ import NewsletterSection from '@/components/home/NewsletterSection'
 
 export default function HomePage() {
   const { data: homepageData, isLoading: homepageLoading } = useHomepageProducts()
-  const { data: flashProducts = [], isLoading: flashLoading } = useFlashSaleProducts()
+  const { data: flashData, isLoading: flashLoading } = useFlashSaleProducts()
 
   const content = homepageData?.content
   const featured = homepageData?.featured ?? []
@@ -56,8 +56,8 @@ export default function HomePage() {
 
         {/* ── 4. Flash Sale ──────────────────────────────────── */}
         <FlashSaleSection
-          flashSale={undefined}
-          products={flashProducts}
+          flashSale={flashData?.flashSale}
+          products={flashData?.products ?? []}
           isLoading={flashLoading}
         />
 

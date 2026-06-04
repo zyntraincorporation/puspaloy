@@ -64,7 +64,7 @@ export async function updateOrderStatus(
     updatedAt: serverTimestamp(),
     statusHistory: arrayUnion({
       status,
-      at: serverTimestamp(),
+      at: new Date(),
       by: updatedBy,
     }),
   })

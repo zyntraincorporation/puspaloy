@@ -20,10 +20,21 @@ export function useHomepageProducts() {
 
       const allActive = await getAllActiveProductsLite()
       
-      const featured = allActive.filter(p => p.featured).slice(0, 8)
-      const newArrivals = allActive.filter(p => p.newArrival).slice(0, 8)
-      const bestSellers = allActive.filter(p => p.bestSeller).slice(0, 8)
-      const trending = allActive.filter(p => p.trending).slice(0, 8)
+      const featured = (content.featuredProductIds ?? [])
+        .map(id => allActive.find(p => p.id === id))
+        .filter(Boolean)
+      
+      const newArrivals = (content.newArrivalProductIds ?? [])
+        .map(id => allActive.find(p => p.id === id))
+        .filter(Boolean)
+        
+      const bestSellers = (content.bestSellerProductIds ?? [])
+        .map(id => allActive.find(p => p.id === id))
+        .filter(Boolean)
+        
+      const trending = (content.trendingProductIds ?? [])
+        .map(id => allActive.find(p => p.id === id))
+        .filter(Boolean)
 
       return { content, featured, newArrivals, bestSellers, trending }
     },
@@ -45,7 +56,12 @@ export function useProductIndex() {
 export function useFlashSaleProducts() {
   return useQuery({
     queryKey: ['flash-sale-products'],
-    queryFn: getFlashSaleProducts,
+    queryFn: async () => {
+      const { getActiveFlashSale } = await import('@/firebase/products')
+      const flashSale = await getActiveFlashSale()
+      const products = await getFlashSaleProducts()
+      return { flashSale, products }
+    },
     staleTime: 2 * 60 * 1000,
   })
 }
