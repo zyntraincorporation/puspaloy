@@ -5,7 +5,7 @@ import {
   onAuthStateChanged,
   type User,
 } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, Timestamp } from 'firebase/firestore'
 import { auth, db } from './config'
 import type { AdminUser } from '@/types'
 
@@ -40,35 +40,68 @@ export async function getAdminUser(uid: string): Promise<AdminUser | null> {
     // we must synthesize the admin object so they can access the dashboard.
     if (isSuper) {
       return {
-        id: uid,
+        uid,
         email: auth.currentUser?.email || '',
         name: 'Super Admin',
         role: 'super_admin',
+        avatar: null,
         active: true,
+        createdBy: 'system',
         permissions: {
-          products: true,
-          orders: true,
-          users: true,
-          content: true,
-          settings: true,
+          viewOrders: true,
+          updateOrderStatus: true,
+          addProducts: true,
+          editProducts: true,
+          deleteProducts: true,
+          manageReviews: true,
+          manageInventory: true,
+          viewAnalytics: true,
+          manageCoupons: true,
+          manageFlashSales: true,
+          manageCategories: true,
+          manageHomepageContent: true,
+          manageBanners: true,
+          manageSettings: true,
+          manageAI: true,
+          managePayments: true,
+          manageModerators: true,
         },
-        createdAt: new Date().toISOString(),
+        createdAt: Timestamp.now(),
       }
     }
 
     return null
   } catch (err) {
     console.error('getAdminUser error:', err)
-    // Even if Firestore fails, grant access if it is the super admin
     if (isSuper) {
       return {
-        id: uid,
+        uid,
         email: auth.currentUser?.email || '',
         name: 'Super Admin',
         role: 'super_admin',
+        avatar: null,
         active: true,
-        permissions: { products: true, orders: true, users: true, content: true, settings: true },
-        createdAt: new Date().toISOString(),
+        createdBy: 'system',
+        permissions: {
+          viewOrders: true,
+          updateOrderStatus: true,
+          addProducts: true,
+          editProducts: true,
+          deleteProducts: true,
+          manageReviews: true,
+          manageInventory: true,
+          viewAnalytics: true,
+          manageCoupons: true,
+          manageFlashSales: true,
+          manageCategories: true,
+          manageHomepageContent: true,
+          manageBanners: true,
+          manageSettings: true,
+          manageAI: true,
+          managePayments: true,
+          manageModerators: true,
+        },
+        createdAt: Timestamp.now(),
       }
     }
     return null
