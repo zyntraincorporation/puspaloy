@@ -67,6 +67,7 @@ export async function getAdminUser(uid: string): Promise<AdminUser | null> {
           manageModerators: true,
         },
         createdAt: Timestamp.now(),
+        isSynthesized: true,
       }
     }
 
@@ -102,6 +103,7 @@ export async function getAdminUser(uid: string): Promise<AdminUser | null> {
           manageModerators: true,
         },
         createdAt: Timestamp.now(),
+        isSynthesized: true,
       }
     }
     return null

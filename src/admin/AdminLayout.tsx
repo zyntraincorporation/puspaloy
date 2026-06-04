@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { signOut } from '@/firebase/auth'
 import {
   LayoutDashboard, Package, Tag, ShoppingCart, Star,
-  Ticket, Zap, Image, Users, Settings, LogOut, Menu, X
+  Ticket, Zap, Image, Users, Settings, LogOut, Menu, X, AlertOctagon, Copy
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/utils/cn'
@@ -26,10 +26,71 @@ export default function AdminLayout() {
   const { adminUser, hasPermission } = useAuth()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const handleSignOut = async () => {
     await signOut()
     navigate('/admin/login')
+  }
+
+  if (adminUser?.isSynthesized) {
+    const payload = JSON.stringify({
+      uid: adminUser.uid,
+      email: adminUser.email,
+      name: "Super Admin",
+      role: "super_admin",
+      active: true
+    }, null, 2)
+
+    return (
+      <div className="min-h-screen bg-rose-50/30 flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full bg-white rounded-3xl shadow-luxury-lg border border-red-100 p-8 space-y-6">
+          <div className="flex items-center gap-4 text-red-600">
+            <AlertOctagon className="w-12 h-12" />
+            <div>
+              <h1 className="text-2xl font-serif font-bold text-red-900">CRITICAL SETUP REQUIRED</h1>
+              <p className="text-red-700">Firestore is blocking your write access because your Admin Document does not exist in the live database.</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4 text-slate-700">
+            <p>Because you are the very first user, your Firestore Rules are completely locked down. To fix this, you must manually create your user document in the Firebase Console.</p>
+            
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+              <h3 className="font-bold text-slate-900 mb-2">Step-by-Step Instructions:</h3>
+              <ol className="list-decimal pl-5 space-y-2">
+                <li>Open the <strong>Firebase Console</strong> and go to the <strong>Firestore Database</strong>.</li>
+                <li>Click <strong>Start Collection</strong> and name it exactly: <code className="bg-slate-200 px-1 rounded text-red-600">admins</code></li>
+                <li>For the <strong>Document ID</strong>, paste your exact UID: <code className="bg-slate-200 px-1 rounded text-red-600">{adminUser.uid}</code></li>
+                <li>Add the fields below exactly as shown. (You can also copy the JSON below and use the "Edit as JSON" feature if your browser extension supports it, or just add them manually.)</li>
+                <li>Click <strong>Save</strong>.</li>
+                <li>Refresh this page.</li>
+              </ol>
+            </div>
+
+            <div className="relative">
+              <pre className="bg-slate-900 text-green-400 p-4 rounded-xl text-sm overflow-x-auto">
+                {payload}
+              </pre>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(payload)
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                }}
+                className="absolute top-2 right-2 p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors"
+              >
+                {copied ? <span className="text-xs">Copied!</span> : <Copy className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          
+          <button onClick={handleSignOut} className="btn-luxury w-full flex justify-center items-center gap-2">
+            <LogOut className="w-4 h-4" /> Sign Out
+          </button>
+        </div>
+      </div>
+    )
   }
 
   const visibleItems = NAV_ITEMS.filter((item) =>

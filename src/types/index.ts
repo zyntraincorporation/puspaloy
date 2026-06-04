@@ -230,6 +230,7 @@ export interface AdminUser {
   createdBy: string
   createdAt: Timestamp
   active: boolean
+  isSynthesized?: boolean
 }
 
 // ────────────────────────────────────────────────────────
