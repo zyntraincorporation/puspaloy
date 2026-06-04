@@ -146,7 +146,7 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
                             {banner.ctaText}
                           </Link>
                           <Link
-                            to="/category/cosmetics"
+                            to="/catalog"
                             className="inline-flex items-center gap-2 px-6 py-3.5 rounded-luxury text-sm font-sans font-semibold text-white border border-white/30 hover:bg-white/10 transition-all duration-300"
                           >
                             View All

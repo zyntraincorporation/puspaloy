@@ -57,9 +57,32 @@ export function useFlashSaleProducts() {
   return useQuery({
     queryKey: ['flash-sale-products'],
     queryFn: async () => {
-      const { getActiveFlashSale } = await import('@/firebase/products')
+      const { getActiveFlashSale, getAllActiveProductsLite } = await import('@/firebase/products')
       const flashSale = await getActiveFlashSale()
-      const products = await getFlashSaleProducts()
+      
+      if (!flashSale || !flashSale.active) {
+        return { flashSale: null, products: [] }
+      }
+      
+      const now = new Date()
+      const endAt = flashSale.endAt?.toDate()
+      if (endAt && now > endAt) {
+        return { flashSale: null, products: [] }
+      }
+
+      const allProducts = await getAllActiveProductsLite()
+      const saleItems = flashSale.products || []
+      
+      const products = saleItems.map((saleItem: any) => {
+        const product = allProducts.find(p => p.id === saleItem.productId)
+        if (!product) return null
+        return {
+          ...product,
+          flashSaleId: flashSale.id,
+          flashSalePrice: saleItem.flashPrice
+        }
+      }).filter(Boolean)
+
       return { flashSale, products }
     },
     staleTime: 2 * 60 * 1000,

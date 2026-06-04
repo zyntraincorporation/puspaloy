@@ -49,7 +49,7 @@ export default function HomePage() {
           subtitle="Our most-loved pieces, carefully curated for elegance and quality"
           products={featured as Product[]}
           isLoading={homepageLoading}
-          viewAllHref="/category/cosmetics"
+          viewAllHref="/catalog"
           bgColor="primary"
           maxItems={8}
         />

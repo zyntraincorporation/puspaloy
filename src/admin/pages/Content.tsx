@@ -12,6 +12,42 @@ import { getAllProductsAdmin } from '@/firebase/products'
 import { useToast } from '@/components/shared/Toast'
 import type { HomepageContent, BrandStory, HeroBanner, WhyChooseItem } from '@/types'
 
+const FALLBACK_BANNERS: HeroBanner[] = [
+  {
+    id: 'b1',
+    image: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1400&q=80',
+    imageMobile: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&q=80',
+    title: 'Luxury Begins Here',
+    subtitle: 'Premium cosmetics curated for the modern woman',
+    ctaText: 'Explore Collection',
+    ctaLink: '/catalog',
+    order: 0,
+    active: true,
+  },
+  {
+    id: 'b2',
+    image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=1400&q=80',
+    imageMobile: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=800&q=80',
+    title: 'Gift the Extraordinary',
+    subtitle: 'Personalized luxury gifts that leave lasting impressions',
+    ctaText: 'Shop Gifts',
+    ctaLink: '/category/gifts',
+    order: 1,
+    active: true,
+  },
+  {
+    id: 'b3',
+    image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=1400&q=80',
+    imageMobile: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=80',
+    title: 'Step Into Elegance',
+    subtitle: "Discover women's shoes that define your style",
+    ctaText: 'Shop Shoes',
+    ctaLink: '/category/shoes',
+    order: 2,
+    active: true,
+  },
+]
+
 const TABS = ['Hero Banners', 'Product Sections', 'Why Choose Us', 'Brand Story'] as const
 type Tab = typeof TABS[number]
 
@@ -227,9 +263,17 @@ export default function Content() {
               banners={hpData.heroBanners ?? []}
               onChange={(banners) => setHp((h) => ({ ...homepage, ...h, heroBanners: banners }))}
             />
-            <button onClick={() => saveHomepage()} disabled={savingHp} className="btn-primary gap-2">
-              {savingHp ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save Banners
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <button onClick={() => saveHomepage()} disabled={savingHp} className="btn-primary gap-2">
+                {savingHp ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save Banners
+              </button>
+              <button 
+                onClick={() => setHp((h) => ({ ...homepage, ...h, heroBanners: FALLBACK_BANNERS }))} 
+                className="btn-secondary gap-2"
+              >
+                Set Default Banners
+              </button>
+            </div>
           </div>
         )
       case 'Product Sections':

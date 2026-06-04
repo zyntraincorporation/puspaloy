@@ -118,11 +118,11 @@ export default function Footer() {
             <div className="mt-5 space-y-2">
               <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                 <Phone size={13} className="text-[var(--color-rose)] shrink-0" />
-                <span>+880-1XXXXXXXXX</span>
+                <span>+8809638504054</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
                 <Mail size={13} className="text-[var(--color-rose)] shrink-0" />
-                <span>hello@puspaloy.com</span>
+                <span>hello@puspaloygiftzone.shop</span>
               </div>
               <div className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
                 <MapPin size={13} className="text-[var(--color-rose)] shrink-0 mt-0.5" />

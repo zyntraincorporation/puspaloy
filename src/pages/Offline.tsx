@@ -3,7 +3,7 @@
 // No Firebase, no React Router — must be standalone for offline functionality
 
 import { motion } from 'framer-motion'
-import { WifiOff, RefreshCw, MessageCircle, ShoppingBag } from 'lucide-react'
+import { WifiOff, RefreshCw, MessageCircle, ShoppingBag, Phone } from 'lucide-react'
 
 export default function Offline() {
   return (
@@ -121,15 +121,12 @@ export default function Offline() {
           </a>
         </motion.div>
 
-        {/* Footer note */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.65 }}
-          className="mt-10 text-gray-600 text-xs"
-        >
-          +880 1883-172754 • puspaloy.netlify.app
-        </motion.p>
+        <div className="mt-12 pt-6 border-t border-[var(--border)] max-w-sm mx-auto">
+          <p className="font-sans text-xs text-[var(--text-muted)] flex items-center justify-center gap-2">
+            <Phone size={12} />
+            +880 1883-172754 • puspaloygiftzone.shop
+          </p>
+        </div>
       </motion.div>
     </div>
   )

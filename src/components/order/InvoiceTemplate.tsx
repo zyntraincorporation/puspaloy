@@ -33,35 +33,44 @@ export default function InvoiceTemplate({ order }: InvoiceTemplateProps) {
 
   // ── jsPDF Download ────────────────────────────────────────
   const handleDownloadPDF = useCallback(async () => {
-    const { jsPDF } = await import('jspdf')
-    const html2canvas = (await import('html2canvas')).default
+    try {
+      const { jsPDF } = await import('jspdf')
+      const html2canvas = (await import('html2canvas')).default
 
-    const element = invoiceRef.current
-    if (!element) return
+      const element = invoiceRef.current
+      if (!element) return
 
-    // Temporarily force white background + screen width for capture
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff',
-      width: 794,   // A4 width at 96dpi
-      windowWidth: 794,
-    })
+      // Temporarily set a white background for the element itself just in case
+      const originalBg = element.style.backgroundColor
+      element.style.backgroundColor = '#ffffff'
 
-    const imgData = canvas.toDataURL('image/png')
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-    const pageW = pdf.internal.pageSize.getWidth()
-    const pageH = pdf.internal.pageSize.getHeight()
-    const imgH = (canvas.height * pageW) / canvas.width
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+      })
+      
+      element.style.backgroundColor = originalBg
 
-    let y = 0
-    while (y < imgH) {
-      if (y > 0) pdf.addPage()
-      pdf.addImage(imgData, 'PNG', 0, -y, pageW, imgH)
-      y += pageH
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+      const pageW = pdf.internal.pageSize.getWidth()
+      const pageH = pdf.internal.pageSize.getHeight()
+      const imgH = (canvas.height * pageW) / canvas.width
+
+      let y = 0
+      while (y < imgH) {
+        if (y > 0) pdf.addPage()
+        pdf.addImage(imgData, 'PNG', 0, -y, pageW, imgH)
+        y += pageH
+      }
+
+      pdf.save(`PUSPALOY-Invoice-${order.id}.pdf`)
+    } catch (err) {
+      console.error('Failed to generate PDF:', err)
+      alert('Failed to generate PDF. Please try the Print option instead.')
     }
-
-    pdf.save(`PUSPALOY-Invoice-${order.id}.pdf`)
   }, [order.id])
 
   // ── Native Print ──────────────────────────────────────────
@@ -82,7 +91,7 @@ export default function InvoiceTemplate({ order }: InvoiceTemplateProps) {
           className="flex items-center gap-2 px-5 py-2.5 rounded-luxury bg-gradient-luxury text-white font-sans text-sm font-semibold shadow-gold hover:shadow-luxury-md transition-all"
         >
           <Download size={15} />
-          Download PDF (jsPDF)
+          Download PDF
         </motion.button>
         <motion.button
           whileTap={{ scale: 0.97 }}
@@ -112,6 +121,37 @@ export default function InvoiceTemplate({ order }: InvoiceTemplateProps) {
           borderRadius: '12px',
         }}
       >
+        {/* Media print styles injected directly to ensure perfect print dialog rendering */}
+        <style>
+          {`
+            @media print {
+              body, html {
+                background: #ffffff !important;
+                color: #000000 !important;
+              }
+              body * {
+                visibility: hidden;
+              }
+              #invoice-printable, #invoice-printable * {
+                visibility: visible;
+                color: #000000 !important;
+                background-color: #ffffff !important;
+              }
+              #invoice-printable {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                border: none !important;
+              }
+              .no-print {
+                display: none !important;
+              }
+            }
+          `}
+        </style>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', paddingBottom: '24px', borderBottom: '2px solid #fce7f3' }}>
           <LogoMark />

@@ -7,40 +7,14 @@ import { db } from './config'
 import type { ProductLite } from '@/types'
 import { getEffectivePrice } from '@/utils/formatters'
 import { getDeliverySettings } from './settings'
+import { getAllActiveProductsLite } from './products'
 
 // ── Lightweight product fetch for AI context ─────────────
 export async function fetchProductCatalogForAI(): Promise<ProductLite[]> {
   try {
-    const q = query(
-      collection(db, 'products'),
-      where('status', '==', 'active'),
-      orderBy('salesCount', 'desc'),
-      limit(80) // top 80 products by sales — keeps context lean
-    )
-    const snap = await getDocs(q)
-    return snap.docs.map((d) => {
-      const data = d.data()
-      return {
-        id: d.id,
-        name: data.name,
-        slug: data.slug,
-        category: data.category,
-        subcategory: data.subcategory ?? '',
-        tags: data.tags ?? [],
-        price: data.price,
-        discountPrice: data.discountPrice ?? null,
-        flashSalePrice: data.flashSalePrice ?? null,
-        featuredImage: data.featuredImage ?? '',
-        avgRating: data.avgRating ?? 0,
-        reviewCount: data.reviewCount ?? 0,
-        salesCount: data.salesCount ?? 0,
-        bestSeller: data.bestSeller ?? false,
-        trending: data.trending ?? false,
-        featured: data.featured ?? false,
-        status: data.status,
-        stock: data.stock ?? 0,
-      } as ProductLite
-    })
+    const products = await getAllActiveProductsLite()
+    // Sort client-side by sales to prioritize best sellers, limit to 80 for context size
+    return products.sort((a, b) => b.salesCount - a.salesCount).slice(0, 80)
   } catch (err) {
     console.warn('[Zyntra] Failed to fetch product catalog:', err)
     return []
@@ -59,9 +33,9 @@ interface StoreInfo {
 
 export async function fetchStoreInfoForAI(): Promise<StoreInfo> {
   const defaults: StoreInfo = {
-    phone: '+880-1700-000000',
-    whatsappNumber: '8801700000000',
-    address: 'Dhaka, Bangladesh',
+    phone: '+8809638504054',
+    whatsappNumber: '8801883172754',
+    address: 'Dhaka, Bangladesh (https://puspaloygiftzone.shop)',
     insideDhaka: 60,
     outsideDhaka: 120,
     freeShippingThreshold: 2000,

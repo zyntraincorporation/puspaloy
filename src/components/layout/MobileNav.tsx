@@ -7,7 +7,7 @@ import { useCartStore } from '@/store/cartStore'
 
 const NAV_ITEMS = [
   { icon: Home, label: 'Home', href: '/' },
-  { icon: Grid3X3, label: 'Shop', href: '/category/cosmetics' },
+  { icon: Grid3X3, label: 'Shop', href: '/catalog' },
   { icon: Search, label: 'Search', href: '/search' },
   { icon: Heart, label: 'Wishlist', href: '/wishlist' },
   { icon: ShoppingBag, label: 'Cart', href: '/cart' },

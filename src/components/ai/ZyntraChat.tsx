@@ -23,7 +23,7 @@ import { getEffectivePrice } from '@/utils/formatters'
 
 // ── Constants ────────────────────────────────────────────
 const WHATSAPP_NUMBER = '8801883172754'
-const WHATSAPP_BASE = `https://wa.me/${WHATSAPP_NUMBER}`
+const WHATSAPP_BASE = 'https://wa.me/8801883172754'
 const WHATSAPP_SUPPORT = `${WHATSAPP_BASE}?text=${encodeURIComponent('Hello PUSPALOY! I need help.')}`
 
 // ── Background context cache (loaded once per app session) ─

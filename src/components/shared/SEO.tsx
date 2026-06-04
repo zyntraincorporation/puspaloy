@@ -13,10 +13,10 @@ interface SEOProps {
 
 const DEFAULTS = {
   title: 'PUSPALOY – Luxury Beauty & Gifts | Bangladesh',
-  description: 'Premium cosmetics, shoes, and personalized gifts from Bangladesh. Shop luxury beauty products, fragrances, and unique gift sets online.',
-  image: 'https://puspaloy.netlify.app/og-image.jpg',
+  description: 'Discover premium cosmetics, women\'s shoes, and luxury gifts at PUSPALOY. We curate elegance to make every moment special.',
+  image: 'https://puspaloygiftzone.shop/og-image.jpg',
   type: 'website' as const,
-  siteUrl: 'https://puspaloy.netlify.app'
+  siteUrl: 'https://puspaloygiftzone.shop'
 }
 
 export default function SEO({

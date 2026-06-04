@@ -11,6 +11,7 @@ import PageLoader from '@/components/shared/PageLoader'
 const HomePage = lazy(() => import('@/pages/HomePage'))
 const ProductPage = lazy(() => import('@/pages/ProductPage'))
 const CategoryPage = lazy(() => import('@/pages/CategoryPage'))
+const CatalogPage = lazy(() => import('@/pages/CatalogPage'))
 const SearchPage = lazy(() => import('@/pages/SearchPage'))
 const CartPage = lazy(() => import('@/pages/CartPage'))
 const CheckoutPage = lazy(() => import('@/pages/CheckoutPage'))
@@ -41,6 +42,7 @@ export default function AppRouter() {
           <Route path="/" element={<HomePage />} />
           <Route path="/product/:slug" element={<ProductPage />} />
           <Route path="/category/:slug" element={<CategoryPage />} />
+          <Route path="/catalog" element={<CatalogPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />

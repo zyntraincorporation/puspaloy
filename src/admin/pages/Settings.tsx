@@ -441,9 +441,9 @@ function GeneralTab() {
         <h3 className="font-serif text-base font-semibold text-[var(--text-primary)]">Social Links</h3>
         <div className="space-y-3">
           {[
-            { key: 'facebookUrl' as const, label: 'Facebook URL', placeholder: 'https://facebook.com/puspaloy' },
-            { key: 'instagramUrl' as const, label: 'Instagram URL', placeholder: 'https://instagram.com/puspaloy' },
-            { key: 'tiktokUrl' as const, label: 'TikTok URL', placeholder: 'https://tiktok.com/@puspaloy' },
+            { key: 'facebookUrl' as const, label: 'Facebook URL', placeholder: 'https://facebook.com/puspaloybd' },
+            { key: 'instagramUrl' as const, label: 'Instagram URL', placeholder: 'https://instagram.com/puspaloybd' },
+            { key: 'tiktokUrl' as const, label: 'TikTok URL', placeholder: 'https://tiktok.com/@puspaloybd' },
           ].map(({ key, label, placeholder }) => (
             <div key={key}>
               <label className="block font-sans text-sm font-medium text-[var(--text-secondary)] mb-1.5">
