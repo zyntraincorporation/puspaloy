@@ -15,6 +15,8 @@ import ProductInfo from '@/components/product/ProductInfo'
 import ProductTabs from '@/components/product/ProductTabs'
 import ProductReviews from '@/components/product/ProductReviews'
 import RelatedProducts from '@/components/product/RelatedProducts'
+import SkeletonProductCard from '@/components/product/SkeletonProductCard'
+import SafeHtmlRenderer from '@/components/shared/SafeHtmlRenderer'
 
 // Skeleton
 function ProductPageSkeleton() {
@@ -93,9 +95,9 @@ export default function ProductPage() {
   }
 
   const descriptionTab = product.htmlDescription ? (
-    <div
+    <SafeHtmlRenderer
       className="product-description"
-      dangerouslySetInnerHTML={{ __html: product.htmlDescription }}
+      html={product.htmlDescription}
     />
   ) : (
     <p className="font-sans text-[var(--text-secondary)] leading-relaxed">

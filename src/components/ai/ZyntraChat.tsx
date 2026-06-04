@@ -2,7 +2,7 @@
 // Complete Zyntra AI chat — optimized for instant open, live product data
 // API key is NEVER in this file — all calls go through Netlify Function proxy
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import {
@@ -20,6 +20,7 @@ import {
 import { slideInBottom } from '@/lib/animations'
 import type { ZyntraMessage, ProductLite } from '@/types'
 import { getEffectivePrice } from '@/utils/formatters'
+import SafeHtmlRenderer from '@/components/shared/SafeHtmlRenderer'
 
 // ── Constants ────────────────────────────────────────────
 const WHATSAPP_NUMBER = '8801883172754'
@@ -186,6 +187,16 @@ function TypingIndicator() {
 // ── Message Bubble ────────────────────────────────────────
 function MessageBubble({ message }: { message: ZyntraMessage }) {
   const isUser = message.role === 'user'
+  
+  const parsedContent = useMemo(() => {
+    if (isUser) return message.content
+    let html = message.content
+    // Parse bold
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    // Parse markdown links
+    html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="underline hover:text-[var(--color-rose)] transition-colors">$1</a>')
+    return html
+  }, [message.content, isUser])
 
   return (
     <motion.div
@@ -207,7 +218,11 @@ function MessageBubble({ message }: { message: ZyntraMessage }) {
               : 'bg-[var(--bg-muted)] text-[var(--text-primary)] border border-[var(--border)] rounded-bl-sm'
           }`}
         >
-          {message.content}
+          {isUser ? (
+            message.content
+          ) : (
+            <SafeHtmlRenderer html={parsedContent} />
+          )}
         </div>
         {message.products && message.products.length > 0 && !isUser && (
           <div className="space-y-2 w-full">
@@ -426,8 +441,19 @@ export default function ZyntraChat() {
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          key="zyntra-chat"
+        <>
+          {/* Backdrop Overlay for easy dismissal */}
+          <motion.div
+            key="zyntra-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={closeChat}
+            className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[1px]"
+          />
+
+          <motion.div
+            key="zyntra-chat"
           variants={slideInBottom}
           initial="hidden"
           animate="visible"
@@ -621,6 +647,7 @@ export default function ZyntraChat() {
             </div>
           )}
         </motion.div>
+        </>
       )}
     </AnimatePresence>
   )

@@ -4,6 +4,8 @@
 import { useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Download, Printer, CheckCircle } from 'lucide-react'
+import { jsPDF } from 'jspdf'
+import html2canvas from 'html2canvas'
 import { formatPrice, formatDate } from '@/utils/formatters'
 import type { Order } from '@/types'
 
@@ -34,9 +36,6 @@ export default function InvoiceTemplate({ order }: InvoiceTemplateProps) {
   // ── jsPDF Download ────────────────────────────────────────
   const handleDownloadPDF = useCallback(async () => {
     try {
-      const { jsPDF } = await import('jspdf')
-      const html2canvas = (await import('html2canvas')).default
-
       const element = invoiceRef.current
       if (!element) return
 
@@ -74,7 +73,42 @@ export default function InvoiceTemplate({ order }: InvoiceTemplateProps) {
   }, [order.id])
 
   // ── Native Print ──────────────────────────────────────────
-  const handlePrint = () => window.print()
+  const handlePrint = () => {
+    const content = invoiceRef.current?.innerHTML
+    if (!content) return
+    const printWindow = window.open('', '', 'width=800,height=900')
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Invoice - ${order.id}</title>
+            <style>
+              body { 
+                margin: 0; 
+                padding: 40px; 
+                background: #ffffff !important; 
+                color: #000000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+              @media print {
+                body { padding: 0; }
+              }
+            </style>
+          </head>
+          <body>
+            ${content}
+          </body>
+        </html>
+      `)
+      printWindow.document.close()
+      printWindow.focus()
+      setTimeout(() => {
+        printWindow.print()
+        printWindow.close()
+      }, 250)
+    }
+  }
 
   const subtotal = order.subtotal
   const deliveryCharge = order.deliveryCharge
@@ -83,8 +117,8 @@ export default function InvoiceTemplate({ order }: InvoiceTemplateProps) {
 
   return (
     <div>
-      {/* Action buttons — hidden when printing */}
-      <div className="no-print flex flex-wrap gap-3 mb-6">
+      {/* Action buttons */}
+      <div className="flex flex-wrap gap-3 mb-6">
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={handleDownloadPDF}
@@ -121,37 +155,6 @@ export default function InvoiceTemplate({ order }: InvoiceTemplateProps) {
           borderRadius: '12px',
         }}
       >
-        {/* Media print styles injected directly to ensure perfect print dialog rendering */}
-        <style>
-          {`
-            @media print {
-              body, html {
-                background: #ffffff !important;
-                color: #000000 !important;
-              }
-              body * {
-                visibility: hidden;
-              }
-              #invoice-printable, #invoice-printable * {
-                visibility: visible;
-                color: #000000 !important;
-                background-color: #ffffff !important;
-              }
-              #invoice-printable {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                margin: 0;
-                padding: 0;
-                border: none !important;
-              }
-              .no-print {
-                display: none !important;
-              }
-            }
-          `}
-        </style>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', paddingBottom: '24px', borderBottom: '2px solid #fce7f3' }}>
           <LogoMark />
