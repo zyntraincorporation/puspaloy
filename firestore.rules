@@ -1,0 +1,146 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper Functions ─────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && 
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'super_admin';
+    }
+
+    function hasPermission(perm) {
+      return isAdmin() && (
+        isSuperAdmin() ||
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.permissions[perm] == true
+      );
+    }
+
+    function isActiveAdmin() {
+      return isAdmin() &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true;
+    }
+
+    // ─── Products ─────────────────────────────────────────────
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isActiveAdmin() && hasPermission('addProducts');
+      allow update: if isActiveAdmin() && hasPermission('editProducts') || 
+                    (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount']) &&
+                     request.resource.data.viewCount == resource.data.viewCount + 1);
+      allow delete: if isActiveAdmin() && hasPermission('deleteProducts');
+    }
+
+    // ─── Categories ───────────────────────────────────────────
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isActiveAdmin() && hasPermission('manageCategories');
+    }
+
+    // ─── Orders ───────────────────────────────────────────────
+    match /orders/{orderId} {
+      // Anyone can create (website checkout + AI assistant)
+      allow create: if true &&
+        request.resource.data.customerName is string &&
+        request.resource.data.phone is string &&
+        request.resource.data.district is string &&
+        request.resource.data.address is string &&
+        request.resource.data.items is list &&
+        request.resource.data.total is number;
+
+      // Only admins can read
+      allow read: if isActiveAdmin() && hasPermission('viewOrders');
+
+      // Only admins with updateOrderStatus can update
+      allow update: if isActiveAdmin() && hasPermission('updateOrderStatus');
+
+      // Only super admin can delete
+      allow delete: if isSuperAdmin();
+    }
+
+    // ─── Reviews ──────────────────────────────────────────────
+    match /reviews/{reviewId} {
+      // Public can only read approved reviews
+      allow read: if resource.data.status == 'approved' || isActiveAdmin();
+
+      // Anyone can submit a review (status will be 'pending')
+      allow create: if true &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.reviewerName is string &&
+        request.resource.data.rating is number &&
+        request.resource.data.rating >= 1 &&
+        request.resource.data.rating <= 5;
+
+      // Admins can approve/reject
+      allow update: if isActiveAdmin() && hasPermission('manageReviews');
+
+      // Admin or super admin can delete
+      allow delete: if isActiveAdmin() && hasPermission('manageReviews');
+    }
+
+    // ─── Coupons ──────────────────────────────────────────────
+    match /coupons/{couponId} {
+      // Anyone reads (needed for checkout validation)
+      allow read: if true;
+      // Allow customers to increment coupon usage during checkout
+      allow update: if true && 
+                    request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedCount', 'updatedAt']) &&
+                    request.resource.data.usedCount == resource.data.usedCount + 1;
+      allow write: if isActiveAdmin() && hasPermission('manageCoupons');
+    }
+
+    // ─── Flash Sales ──────────────────────────────────────────
+    match /flashSales/{saleId} {
+      allow read: if true;
+      allow write: if isActiveAdmin() && hasPermission('manageFlashSales');
+    }
+
+    // ─── Admins / RBAC ────────────────────────────────────────
+    match /admins/{adminId} {
+      // Admins can read their own doc; super admin reads all
+      allow read: if isSignedIn() && (request.auth.uid == adminId || isSuperAdmin());
+
+      // Only super admin can create/update/delete admin docs
+      allow create, update, delete: if isSuperAdmin();
+    }
+
+    // ─── Settings ─────────────────────────────────────────────
+    match /settings/{settingId} {
+      // Public needs to read delivery and general settings
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
+    // ─── Content / CMS ────────────────────────────────────────
+    match /content/{contentId} {
+      allow read: if true;
+      allow write: if isActiveAdmin() && hasPermission('manageHomepageContent');
+    }
+
+    // ─── Newsletter ───────────────────────────────────────────
+    match /newsletter/{email} {
+      allow create: if true &&
+        request.resource.data.email is string;
+      allow read, update, delete: if isSuperAdmin();
+    }
+
+    // ─── Analytics (daily) ────────────────────────────────────
+    match /analytics/{docId} {
+      allow read: if isActiveAdmin() && hasPermission('viewAnalytics');
+      allow write: if isActiveAdmin();
+    }
+
+    // ─── Logs ─────────────────────────────────────────────────
+    match /logs/{logId} {
+      allow create: if true; // Anyone can write error logs
+      allow read, delete: if isSuperAdmin();
+    }
+  }
+}

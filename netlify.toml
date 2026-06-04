@@ -1,0 +1,27 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/sitemap.xml"
+  to = "/.netlify/functions/sitemap"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[dev]
+  command = "npm run dev"
+  port = 8888
+  targetPort = 5173
+
+# Netlify environment variables (set these in Netlify Dashboard → Site Settings → Environment Variables)
+# OPENROUTER_API_KEY = your_openrouter_api_key
+# TELEGRAM_BOT_TOKEN = your_telegram_bot_token
+# TELEGRAM_CHAT_ID   = your_telegram_chat_id
