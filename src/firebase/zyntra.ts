@@ -89,15 +89,15 @@ export async function fetchStoreInfoForAI(): Promise<StoreInfo> {
 export async function fetchAISettings(): Promise<{ model: string; enabled: boolean; systemPromptAddition: string }> {
   try {
     const snap = await getDoc(doc(db, 'settings', 'ai'))
-    if (!snap.exists()) return { model: 'google/gemini-2.0-flash-exp:free', enabled: true, systemPromptAddition: '' }
+    if (!snap.exists()) return { model: 'google/gemini-2.0-flash-001', enabled: true, systemPromptAddition: '' }
     const d = snap.data()
     return {
-      model: d.model ?? 'google/gemini-2.0-flash-exp:free',
+      model: d.model ?? 'google/gemini-2.0-flash-001',
       enabled: d.enabled ?? true,
       systemPromptAddition: d.systemPromptAddition ?? '',
     }
   } catch {
-    return { model: 'google/gemini-2.0-flash-exp:free', enabled: true, systemPromptAddition: '' }
+    return { model: 'google/gemini-2.0-flash-001', enabled: true, systemPromptAddition: '' }
   }
 }
 

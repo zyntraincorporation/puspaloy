@@ -76,7 +76,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
     }
   }
 
-  const { messages, systemContext, model = 'google/gemini-2.0-flash-exp:free' } = body
+  const { messages, systemContext, model = 'google/gemini-2.0-flash-001' } = body
 
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return {
