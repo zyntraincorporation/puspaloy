@@ -18,12 +18,12 @@ export function useHomepageProducts() {
       const content = await getHomepageContent()
       if (!content) return null
 
-      const [featured, newArrivals, bestSellers, trending] = await Promise.all([
-        getFeaturedProducts(content.featuredProductIds ?? []),
-        getFeaturedProducts(content.newArrivalProductIds ?? []),
-        getFeaturedProducts(content.bestSellerProductIds ?? []),
-        getFeaturedProducts(content.trendingProductIds ?? []),
-      ])
+      const allActive = await getAllActiveProductsLite()
+      
+      const featured = allActive.filter(p => p.featured).slice(0, 8)
+      const newArrivals = allActive.filter(p => p.newArrival).slice(0, 8)
+      const bestSellers = allActive.filter(p => p.bestSeller).slice(0, 8)
+      const trending = allActive.filter(p => p.trending).slice(0, 8)
 
       return { content, featured, newArrivals, bestSellers, trending }
     },

@@ -4,6 +4,7 @@ import SEO from '@/components/shared/SEO'
 import { motion } from 'framer-motion'
 import { pageTransition } from '@/lib/animations'
 import { useHomepageProducts, useFlashSaleProducts } from '@/hooks/useProducts'
+import type { Product } from '@/types'
 
 // Layout & Section components
 import HeroSlider from '@/components/home/HeroSlider'
@@ -46,7 +47,7 @@ export default function HomePage() {
           label="Handpicked for You"
           title="Featured Collection"
           subtitle="Our most-loved pieces, carefully curated for elegance and quality"
-          products={featured}
+          products={featured as Product[]}
           isLoading={homepageLoading}
           viewAllHref="/category/cosmetics"
           bgColor="primary"
@@ -65,7 +66,7 @@ export default function HomePage() {
           label="Just Landed"
           title="New Arrivals"
           subtitle="Fresh additions to our luxury collection — be the first to discover them"
-          products={newArrivals}
+          products={newArrivals as Product[]}
           isLoading={homepageLoading}
           viewAllHref="/category/cosmetics"
           bgColor="muted"
@@ -77,7 +78,7 @@ export default function HomePage() {
           label="Customer Favorites"
           title="Best Sellers"
           subtitle="The products our customers love most — bestselling for good reason"
-          products={bestSellers}
+          products={bestSellers as Product[]}
           isLoading={homepageLoading}
           viewAllHref="/category/gifts"
           bgColor="primary"
@@ -89,7 +90,7 @@ export default function HomePage() {
           label="What's Hot"
           title="Trending Now"
           subtitle="The most talked-about products this season"
-          products={trending}
+          products={trending as Product[]}
           isLoading={homepageLoading}
           viewAllHref="/category/accessories"
           bgColor="muted"

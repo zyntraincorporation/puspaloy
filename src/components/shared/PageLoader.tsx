@@ -26,7 +26,7 @@ export default function PageLoader() {
             style={{ clipPath: 'polygon(50% 0%, 100% 100%, 0% 100%)' }}
           />
           <div className="relative z-10 w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-luxury overflow-hidden p-2">
-            <img src="/favicon.svg" alt="Loading" className="w-full h-full object-contain animate-pulse" />
+            <img src="/favicon.ico" alt="Loading" className="w-full h-full object-contain animate-pulse" />
           </div>
         </div>
         <p className="font-serif text-sm tracking-widest text-[var(--text-muted)] uppercase">

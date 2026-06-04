@@ -61,6 +61,7 @@ export interface ProductLite {
   bestSeller: boolean
   trending: boolean
   featured: boolean
+  newArrival: boolean
   status: ProductStatus
   stock: number
 }

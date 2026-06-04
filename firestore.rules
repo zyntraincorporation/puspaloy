@@ -44,16 +44,16 @@ service cloud.firestore {
       allow write: if isActiveAdmin() && hasPermission('manageCategories');
     }
 
+    // ─── Counters (Order ID Generation) ───────────────────────
+    match /counters/{counterId} {
+      // Anyone checking out needs to read/increment the daily order counter
+      allow read, write: if true;
+    }
+
     // ─── Orders ───────────────────────────────────────────────
     match /orders/{orderId} {
       // Anyone can create (website checkout + AI assistant)
-      allow create: if true &&
-        request.resource.data.customerName is string &&
-        request.resource.data.phone is string &&
-        request.resource.data.district is string &&
-        request.resource.data.address is string &&
-        request.resource.data.items is list &&
-        request.resource.data.total is number;
+      allow create: if true;
 
       // Only admins can read
       allow read: if isActiveAdmin() && hasPermission('viewOrders');

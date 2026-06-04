@@ -103,7 +103,7 @@ export default function AdminLayout() {
       <div className="p-5 border-b border-[var(--border)]">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden">
-            <img src="/favicon.svg" alt="Puspaloy Logo" className="w-full h-full object-contain" />
+            <img src="/favicon.ico" alt="Puspaloy Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <p className="font-serif text-base font-semibold text-[var(--text-primary)]">PUSPALOY</p>

@@ -104,6 +104,7 @@ export async function getAllActiveProductsLite(): Promise<ProductLite[]> {
       bestSeller: data.bestSeller ?? false,
       trending: data.trending ?? false,
       featured: data.featured ?? false,
+      newArrival: data.newArrival ?? false,
       status: data.status,
       stock: data.stock ?? 0,
       createdAt: data.createdAt,
