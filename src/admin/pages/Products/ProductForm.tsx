@@ -19,7 +19,7 @@ type FormValues = {
   name: string
   slug: string
   sku: string
-  category: ProductCategory
+  category: string
   subcategory: string
   tags: string
   price: string
@@ -40,7 +40,7 @@ type FormValues = {
 }
 
 const EMPTY_FORM: FormValues = {
-  name: '', slug: '', sku: '', category: 'cosmetics', subcategory: '',
+  name: '', slug: '', sku: '', category: '', subcategory: '',
   tags: '', price: '', discountPrice: '', stock: '', status: 'active',
   featured: false, newArrival: false, bestSeller: false, trending: false,
   description: '', htmlDescription: '', youtubeVideoId: '',
@@ -48,7 +48,7 @@ const EMPTY_FORM: FormValues = {
   featuredImage: '', images: [],
 }
 
-const CATEGORIES: ProductCategory[] = ['cosmetics', 'shoes', 'gifts', 'personalized-gifts', 'accessories']
+import { useAllCategories } from '@/hooks/useCategories'
 
 // ── Image Uploader ─────────────────────────────────────────
 function ImageUploader({
@@ -283,6 +283,8 @@ export default function ProductForm() {
   const [form, setForm] = useState<FormValues>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
 
+  const { data: categories = [] } = useAllCategories()
+
   const { data: existing, isLoading } = useQuery({
     queryKey: ['product', id],
     queryFn: () => getProductById(id!),
@@ -431,8 +433,18 @@ export default function ProductForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">Category *</label>
-                  <select value={form.category} onChange={(e) => set('category', e.target.value as ProductCategory)} className="input-luxury">
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  <select 
+                    value={form.category}
+                    onChange={(e) => set('category', e.target.value)}
+                    className="input-luxury pr-10 appearance-none bg-no-repeat"
+                    style={{ backgroundImage: 'none' }}
+                  >
+                    <option value="" disabled>Select category</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.slug}>
+                        {c.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>

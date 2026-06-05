@@ -9,34 +9,21 @@ import {
 } from 'lucide-react'
 import {
   collection, getDocs, addDoc, doc, updateDoc,
-  deleteDoc, serverTimestamp, query, orderBy,
+  deleteDoc, serverTimestamp, query, orderBy, where
 } from 'firebase/firestore'
 import { db } from '@/firebase/config'
 import { useToast } from '@/components/shared/Toast'
 import { cn } from '@/utils/cn'
 import type { Category, Subcategory } from '@/types'
 
-// ── Firebase helpers ───────────────────────────────────────
-async function getAllCategories(): Promise<Category[]> {
-  const q = query(collection(db, 'categories'), orderBy('order', 'asc'))
-  const snap = await getDocs(q)
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Category))
-}
-
-async function createCategory(data: Omit<Category, 'id' | 'createdAt' | 'productCount'>): Promise<string> {
-  const ref = await addDoc(collection(db, 'categories'), {
-    ...data, productCount: 0, createdAt: serverTimestamp(),
-  })
-  return ref.id
-}
-
-async function saveCategory(id: string, data: Partial<Category>): Promise<void> {
-  await updateDoc(doc(db, 'categories', id), data)
-}
-
-async function removeCategory(id: string): Promise<void> {
-  await deleteDoc(doc(db, 'categories', id))
-}
+import {
+  getAllCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory as removeCategory,
+} from '@/firebase/categories'
+import { useAllCategories } from '@/hooks/useCategories'
+import type { Product } from '@/types'
 
 // ── Category Icons ─────────────────────────────────────────
 const CATEGORY_ICONS = ['💄', '👠', '🎁', '🎀', '✨', '💅', '👜', '💍', '🌸', '🌺', '🛍️', '💝']
@@ -236,6 +223,36 @@ function CategoryModal({
   )
 }
 
+// ── Category Products List ──────────────────────────────────
+function CategoryProductsList({ slug }: { slug: string }) {
+  const { data: products, isLoading } = useQuery({
+    queryKey: ['products', 'category', slug],
+    queryFn: async () => {
+      const q = query(collection(db, 'products'), where('category', '==', slug))
+      const snap = await getDocs(q)
+      return snap.docs.map(d => ({ id: d.id, ...d.data() } as Product))
+    }
+  })
+
+  if (isLoading) return <div className="p-4 text-center text-sm font-sans text-[var(--text-muted)] animate-pulse">Loading products...</div>
+  if (!products?.length) return <div className="p-4 text-center text-sm font-sans text-[var(--text-muted)]">No products in this category</div>
+
+  return (
+    <div className="p-4 bg-[var(--bg-muted)]/30 rounded-b-luxury-lg border-t border-[var(--border)] grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {products.map(p => (
+        <div key={p.id} className="flex items-center gap-3 text-sm p-2 bg-[var(--bg-surface)] rounded-luxury border border-[var(--border)]">
+           <img src={p.images?.[0]} alt={p.name} className="w-10 h-10 rounded object-cover shrink-0" />
+           <div className="min-w-0 flex-1">
+             <p className="font-sans font-medium text-[var(--text-primary)] truncate">{p.name}</p>
+             <p className="font-mono text-xs text-[var(--text-muted)] mt-0.5">{p.sku}</p>
+           </div>
+           <span className={cn("px-2 py-0.5 rounded-full text-[10px] uppercase font-bold", p.status === 'archived' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600')}>{p.status}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ── Category Row ───────────────────────────────────────────
 function CategoryRow({
   category, onEdit, onDelete, onToggleActive,
@@ -245,14 +262,17 @@ function CategoryRow({
   onDelete: () => void
   onToggleActive: () => void
 }) {
+  const [expanded, setExpanded] = useState(false)
+
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex items-center gap-4 p-4 bg-[var(--bg-surface)] rounded-luxury-lg border border-[var(--border)] hover:border-[var(--color-rose)]/30 transition-colors"
+      className="bg-[var(--bg-surface)] rounded-luxury-lg border border-[var(--border)] hover:border-[var(--color-rose)]/30 transition-colors overflow-hidden"
     >
-      <GripVertical size={16} className="text-[var(--text-muted)] shrink-0 cursor-grab" />
+      <div className="flex items-center gap-4 p-4">
+        <GripVertical size={16} className="text-[var(--text-muted)] shrink-0 cursor-grab" />
 
       {/* Icon + image */}
       <div className="relative shrink-0">
@@ -290,6 +310,15 @@ function CategoryRow({
 
       <div className="flex items-center gap-1.5 shrink-0">
         <button
+          onClick={() => setExpanded(!expanded)}
+          className="p-1.5 rounded-luxury text-[var(--text-muted)] hover:bg-[var(--bg-muted)] transition-colors flex items-center gap-1 mr-2"
+        >
+          <span className="text-xs font-medium">Products</span>
+          {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+        </button>
+        {!category.archived && (
+          <>
+            <button
           onClick={onToggleActive}
           className={cn(
             'p-1.5 rounded-luxury transition-colors',
@@ -315,7 +344,24 @@ function CategoryRow({
         >
           <Trash2 size={15} />
         </button>
+          </>
+        )}
       </div>
+      </div>
+      
+      {/* Expanded Products Section */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <CategoryProductsList slug={category.slug} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   )
 }
@@ -327,11 +373,13 @@ export default function Categories() {
   const [showModal, setShowModal] = useState(false)
   const [editingCat, setEditingCat] = useState<Category | null>(null)
   const [saving, setSaving] = useState(false)
+  const [tab, setTab] = useState<'active' | 'archive'>('active')
 
-  const { data: categories = [], isLoading } = useQuery({
-    queryKey: ['categories', 'admin'],
-    queryFn: getAllCategories,
-  })
+  const { data: allCategories = [], isLoading } = useAllCategories()
+
+  const categories = allCategories.filter(c => !c.archived)
+  const archivedCategories = allCategories.filter(c => c.archived)
+  const displayList = tab === 'active' ? categories : archivedCategories
 
   const handleSave = async (form: CatForm) => {
     setSaving(true)
@@ -348,10 +396,10 @@ export default function Categories() {
         subcategories: form.subcategories,
       }
       if (editingCat) {
-        await saveCategory(editingCat.id, payload)
+        await updateCategory(editingCat.id, payload)
         toast('Category updated!', 'success')
       } else {
-        await createCategory(payload as Omit<Category, 'id' | 'createdAt' | 'productCount'>)
+        await createCategory(payload as any)
         toast('Category created!', 'success')
       }
       qc.invalidateQueries({ queryKey: ['categories'] })
@@ -365,10 +413,10 @@ export default function Categories() {
   }
 
   const handleDelete = async (cat: Category) => {
-    if (!window.confirm(`Delete category "${cat.name}"? This cannot be undone.`)) return
+    if (!window.confirm(`Delete category "${cat.name}"? All products in this category will be securely archived.`)) return
     try {
-      await removeCategory(cat.id)
-      toast('Category deleted', 'success')
+      await removeCategory(cat.id, cat.slug)
+      toast('Category deleted and products archived', 'success')
       qc.invalidateQueries({ queryKey: ['categories'] })
     } catch {
       toast('Failed to delete category', 'error')
@@ -377,7 +425,7 @@ export default function Categories() {
 
   const handleToggleActive = async (cat: Category) => {
     try {
-      await saveCategory(cat.id, { active: !cat.active })
+      await updateCategory(cat.id, { active: !cat.active })
       qc.invalidateQueries({ queryKey: ['categories'] })
       toast(cat.active ? 'Category hidden' : 'Category activated', 'success')
     } catch {
@@ -429,6 +477,24 @@ export default function Categories() {
         ))}
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-6 mb-6 border-b border-[var(--border)]">
+        <button 
+          onClick={() => setTab('active')} 
+          className={cn("pb-3 text-sm font-medium transition-colors flex items-center gap-2", tab === 'active' ? "border-b-2 border-[var(--color-rose)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]")}
+        >
+          Active Categories 
+          <span className="bg-[var(--bg-muted)] text-[var(--text-secondary)] px-2 py-0.5 rounded-full text-xs">{categories.length}</span>
+        </button>
+        <button 
+          onClick={() => setTab('archive')} 
+          className={cn("pb-3 text-sm font-medium transition-colors flex items-center gap-2", tab === 'archive' ? "border-b-2 border-[var(--color-rose)] text-[var(--text-primary)]" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]")}
+        >
+          Archived 
+          <span className="bg-[var(--bg-muted)] text-[var(--text-secondary)] px-2 py-0.5 rounded-full text-xs">{archivedCategories.length}</span>
+        </button>
+      </div>
+
       {/* Category list */}
       {isLoading ? (
         <div className="space-y-3">
@@ -436,21 +502,23 @@ export default function Categories() {
             <div key={i} className="h-20 skeleton rounded-luxury-lg" />
           ))}
         </div>
-      ) : categories.length === 0 ? (
+      ) : displayList.length === 0 ? (
         <div className="text-center py-20 border-2 border-dashed border-[var(--border)] rounded-luxury-xl">
           <Tag size={36} className="text-[var(--text-muted)] mx-auto mb-3" />
-          <p className="font-serif text-lg text-[var(--text-primary)]">No categories yet</p>
+          <p className="font-serif text-lg text-[var(--text-primary)]">No {tab === 'archive' ? 'archived' : 'active'} categories yet</p>
           <p className="font-sans text-sm text-[var(--text-muted)] mt-1 mb-4">
-            Create your first category to organize products
+            {tab === 'archive' ? 'Deleted categories will appear here.' : 'Create your first category to organize products'}
           </p>
-          <button onClick={openCreate} className="btn-primary gap-2">
-            <Plus size={15} /> Create Category
-          </button>
+          {tab === 'active' && (
+            <button onClick={openCreate} className="btn-primary gap-2">
+              <Plus size={15} /> Create Category
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-2.5">
           <AnimatePresence>
-            {categories.map((cat) => (
+            {displayList.map((cat) => (
               <CategoryRow
                 key={cat.id}
                 category={cat}

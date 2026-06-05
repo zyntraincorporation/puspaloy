@@ -87,9 +87,9 @@ export default function ProductPage() {
         : 'https://schema.org/OutOfStock',
       url: canonicalUrl,
     },
-    aggregateRating: product.reviewCount > 0 ? {
+    aggregateRating: (product.reviewCount ?? 0) > 0 ? {
       '@type': 'AggregateRating',
-      ratingValue: product.avgRating,
+      ratingValue: product.avgRating ?? 0,
       reviewCount: product.reviewCount,
     } : undefined,
   }
@@ -113,7 +113,7 @@ export default function ProductPage() {
     },
     {
       id: 'reviews',
-      label: `Reviews (${product.reviewCount})`,
+      label: `Reviews (${product.reviewCount ?? 0})`,
       content: <ProductReviews product={product} />,
     },
     ...(product.youtubeVideoId ? [] : []),

@@ -8,10 +8,10 @@ import {
   CheckCircle, Package, MapPin, Phone, Clock,
   Home, ShoppingBag, ArrowRight,
 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-import { getOrderById } from '@/firebase/orders'
+import { subscribeToOrder } from '@/firebase/orders'
 import InvoiceTemplate from '@/components/order/InvoiceTemplate'
 import { formatPrice } from '@/utils/formatters'
+import type { Order } from '@/types'
 import { staggerContainer, fadeInUp } from '@/lib/animations'
 
 const REDIRECT_SECONDS = 30
@@ -32,13 +32,37 @@ export default function OrderConfirmationPage() {
   const [countdown, setCountdown] = useState(REDIRECT_SECONDS)
   const [showInvoice, setShowInvoice] = useState(false)
 
-  const { data: order, isLoading } = useQuery({
-    queryKey: ['order', orderId],
-    queryFn: () => getOrderById(orderId ?? ''),
-    enabled: !!orderId,
-    staleTime: 0,
-    retry: 3,
-  })
+  const [order, setOrder] = useState<Order | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    if (!orderId) return
+
+    let isResolved = false
+    setIsLoading(true)
+
+    // Listen to real-time updates so if the order is still syncing to Firestore, 
+    // it will automatically pop up here the millisecond it's ready!
+    const unsubscribe = subscribeToOrder(orderId, (fetchedOrder) => {
+      setOrder(fetchedOrder)
+      if (fetchedOrder) {
+        isResolved = true
+        setIsLoading(false)
+      }
+    })
+
+    // Timeout guard: if order doesn't appear after 10 seconds, assume it failed.
+    const timeoutId = setTimeout(() => {
+      if (!isResolved) {
+        setIsLoading(false)
+      }
+    }, 10000)
+
+    return () => {
+      unsubscribe()
+      clearTimeout(timeoutId)
+    }
+  }, [orderId])
 
   // Auto-redirect countdown
   useEffect(() => {

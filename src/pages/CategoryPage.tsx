@@ -1,63 +1,53 @@
 // src/pages/CategoryPage.tsx
 import SEO from '@/components/shared/SEO'
-import { useParams } from 'react-router-dom'
+import { useParams, Navigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useCategoryProducts } from '@/hooks/useProducts'
+import { useActiveCategories } from '@/hooks/useCategories'
 import ProductCard from '@/components/product/ProductCard'
 import SkeletonProductCard from '@/components/product/SkeletonProductCard'
 import { staggerContainer, fadeInUp } from '@/lib/animations'
-import type { ProductCategory } from '@/types'
-
-const CATEGORY_META: Record<string, { title: string; description: string; banner: string }> = {
-  cosmetics: {
-    title: 'Premium Cosmetics',
-    description: 'Skincare, makeup, and beauty essentials curated for the modern woman',
-    banner: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1400&q=80',
-  },
-  shoes: {
-    title: "Women's Shoes",
-    description: 'Elegant heels, flats, and sandals crafted for style and comfort',
-    banner: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=1400&q=80',
-  },
-  gifts: {
-    title: 'Premium Gift Items',
-    description: 'Luxury gift sets and hampers for every special occasion',
-    banner: 'https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=1400&q=80',
-  },
-  'personalized-gifts': {
-    title: 'Personalized Gifts',
-    description: 'Custom gifts made with love — uniquely crafted for your loved ones',
-    banner: 'https://images.unsplash.com/photo-1607344645866-009c320b63e0?w=1400&q=80',
-  },
-  accessories: {
-    title: 'Fashion Accessories',
-    description: 'Handbags, jewelry, and fashion extras to complete your look',
-    banner: 'https://images.unsplash.com/photo-1617019114583-affb34d1b3cd?w=1400&q=80',
-  },
-}
 
 export default function CategoryPage() {
   const { slug } = useParams<{ slug: string }>()
-  const category = (slug as ProductCategory) ?? 'cosmetics'
-  const meta = CATEGORY_META[slug ?? 'cosmetics'] ?? CATEGORY_META.cosmetics
-  const { data, isLoading } = useCategoryProducts(category)
+  const { data: categories = [], isLoading: isLoadingCategories } = useActiveCategories()
+  
+  const currentCategory = categories.find(c => c.slug === slug)
+  
+  const { data, isLoading: isLoadingProducts } = useCategoryProducts(slug ?? '')
   const products = data?.products ?? []
+
+  if (isLoadingCategories) {
+    return (
+      <div className="min-h-screen pt-24 pb-12 flex justify-center">
+        <div className="w-12 h-12 border-4 border-[var(--color-rose)] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    )
+  }
+
+  if (!currentCategory && !isLoadingCategories) {
+    return <Navigate to="/catalog" replace />
+  }
+
+  const title = currentCategory?.name || 'Category'
+  const description = currentCategory?.description || `Explore our ${title} collection`
+  const banner = currentCategory?.image || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1400&q=80'
 
   return (
     <>
       <SEO 
-        title={meta.title}
-        description={meta.description}
-        image={meta.banner}
-        url={`https://puspaloy.com/category/${slug ?? 'cosmetics'}`}
+        title={title}
+        description={description}
+        image={banner}
+        url={`https://puspaloy.com/category/${slug}`}
       />
 
       <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
         {/* Category banner */}
         <div className="relative h-48 sm:h-64 overflow-hidden">
           <img
-            src={meta.banner}
-            alt={meta.title}
+            src={banner}
+            alt={title}
             className="w-full h-full object-cover"
             loading="eager"
           />
@@ -69,10 +59,21 @@ export default function CategoryPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
               >
-                <h1 className="font-serif text-3xl sm:text-4xl font-bold text-white mb-2">
-                  {meta.title}
-                </h1>
-                <p className="font-sans text-sm text-white/70 max-w-md">{meta.description}</p>
+              <motion.h1 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="font-display text-4xl sm:text-5xl md:text-6xl text-white font-bold drop-shadow-xl"
+              >
+                {title}
+              </motion.h1>
+              <motion.p 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.1 }}
+                className="mt-3 sm:mt-4 text-white/90 font-sans text-sm sm:text-base md:text-lg max-w-2xl text-shadow"
+              >
+                {description}
+              </motion.p>
               </motion.div>
             </div>
           </div>
@@ -81,7 +82,7 @@ export default function CategoryPage() {
         {/* Products */}
         <div className="container-luxury py-10">
           {/* Result count */}
-          {!isLoading && (
+          {!isLoadingProducts && (
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -91,9 +92,11 @@ export default function CategoryPage() {
             </motion.p>
           )}
 
-          {isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {Array.from({ length: 8 }).map((_, i) => <SkeletonProductCard key={i} />)}
+          {isLoadingProducts ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+              {[...Array(8)].map((_, i) => (
+                <SkeletonProductCard key={i} />
+              ))}
             </div>
           ) : products.length === 0 ? (
             <div className="text-center py-20">

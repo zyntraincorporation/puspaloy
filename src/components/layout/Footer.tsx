@@ -5,13 +5,7 @@ import { Share2, MessageCircle, Mail, Phone, MapPin, Heart } from 'lucide-react'
 import { fadeInUp, staggerContainer } from '@/lib/animations'
 import { useState } from 'react'
 
-const QUICK_LINKS = [
-  { label: 'Cosmetics', href: '/category/cosmetics' },
-  { label: "Women's Shoes", href: '/category/shoes' },
-  { label: 'Gift Items', href: '/category/gifts' },
-  { label: 'Accessories', href: '/category/accessories' },
-  { label: 'Personalized Gifts', href: '/category/personalized-gifts' },
-]
+import { useActiveCategories } from '@/hooks/useCategories'
 
 const INFO_LINKS = [
   { label: 'About PUSPALOY', href: '/#brand-story' },
@@ -23,6 +17,7 @@ const INFO_LINKS = [
 export default function Footer() {
   const [email, setEmail] = useState('')
   const [subscribed, setSubscribed] = useState(false)
+  const { data: categories = [] } = useActiveCategories()
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,7 +48,7 @@ export default function Footer() {
               <div className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden">
                 <img src="/favicon.ico" alt="Puspaloy Logo" className="w-full h-full object-contain" />
               </div>
-              <span className="font-serif text-2xl font-semibold text-[var(--text-primary)]">
+              <span className="font-serif text-3xl font-bold bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37] bg-clip-text text-transparent tracking-wide">
                 PUSPALOY
               </span>
             </Link>
@@ -84,14 +79,14 @@ export default function Footer() {
             <h3 className="font-sans font-semibold text-sm tracking-widest uppercase text-[var(--color-gold)] mb-4">
               Shop
             </h3>
-            <ul className="space-y-2.5">
-              {QUICK_LINKS.map((link) => (
-                <li key={link.href}>
+            <ul className="space-y-3">
+              {categories.slice(0, 5).map((cat) => (
+                <li key={cat.id}>
                   <Link
-                    to={link.href}
-                    className="font-sans text-sm text-[var(--text-secondary)] hover:text-[var(--color-rose)] transition-colors duration-200"
+                    to={`/category/${cat.slug}`}
+                    className="font-sans text-sm text-[var(--text-secondary)] hover:text-[var(--color-rose)] transition-colors inline-block"
                   >
-                    {link.label}
+                    {cat.name}
                   </Link>
                 </li>
               ))}

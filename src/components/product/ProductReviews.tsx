@@ -102,11 +102,11 @@ export default function ProductReviews({ product }: ProductReviewsProps) {
         <div className="flex flex-col sm:flex-row gap-6 p-5 rounded-luxury-lg bg-[var(--bg-muted)]">
           <div className="text-center sm:text-left">
             <p className="font-display text-5xl font-bold text-[var(--color-gold)]">
-              {product.avgRating.toFixed(1)}
+              {(product.avgRating ?? 0).toFixed(1)}
             </p>
-            <StarRatingDisplay rating={product.avgRating} size={16} className="justify-center sm:justify-start mt-1" />
+            <StarRatingDisplay rating={product.avgRating ?? 0} size={16} className="justify-center sm:justify-start mt-1" />
             <p className="font-sans text-xs text-[var(--text-muted)] mt-1">
-              {product.reviewCount} review{product.reviewCount !== 1 ? 's' : ''}
+              {product.reviewCount ?? 0} review{(product.reviewCount ?? 0) !== 1 ? 's' : ''}
             </p>
           </div>
           <div className="flex-1 space-y-1.5">

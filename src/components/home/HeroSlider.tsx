@@ -85,7 +85,7 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
   const scrollTo = useCallback((i: number) => emblaApi?.scrollTo(i), [emblaApi])
 
   return (
-    <section className="relative w-full overflow-hidden bg-luxury-black" style={{ height: 'min(100svh, 700px)' }}>
+    <section className="relative w-full overflow-hidden bg-luxury-black h-[50svh] md:h-[min(90svh,700px)]">
       {/* Embla viewport */}
       <div ref={emblaRef} className="overflow-hidden h-full touch-pan-y no-select">
         <div className="flex h-full" style={{ backfaceVisibility: 'hidden' }}>

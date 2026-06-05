@@ -6,8 +6,10 @@ import { Timestamp } from 'firebase/firestore'
 // ────────────────────────────────────────────────────────
 // PRODUCT
 // ────────────────────────────────────────────────────────
-export type ProductStatus = 'active' | 'draft' | 'out_of_stock'
-export type ProductCategory = 'cosmetics' | 'shoes' | 'gifts' | 'personalized-gifts' | 'accessories'
+export type ProductStatus = 'active' | 'draft' | 'out_of_stock' | 'archived'
+export type ProductCategory = string
+
+
 
 export interface Product {
   id: string
@@ -87,6 +89,7 @@ export interface Category {
   subcategories: Subcategory[]
   productCount: number
   createdAt: Timestamp
+  archived?: boolean
 }
 
 // ────────────────────────────────────────────────────────

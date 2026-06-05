@@ -11,29 +11,22 @@ import {
 import { getAllProductsAdmin, deleteProduct, updateProduct } from '@/firebase/products'
 import { formatPrice } from '@/utils/formatters'
 import { cn } from '@/utils/cn'
-import type { Product, ProductCategory, ProductStatus } from '@/types'
+import type { Product, ProductStatus } from '@/types'
+import { useAllCategories } from '@/hooks/useCategories'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 20
 
-type CategoryFilter = 'all' | ProductCategory
+type CategoryFilter = 'all' | string
 type StatusFilter = 'all' | ProductStatus
-
-const CATEGORY_PILLS: { value: CategoryFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'cosmetics', label: 'Cosmetics' },
-  { value: 'shoes', label: 'Shoes' },
-  { value: 'gifts', label: 'Gifts' },
-  { value: 'personalized-gifts', label: 'Personalized' },
-  { value: 'accessories', label: 'Accessories' },
-]
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'All Status' },
   { value: 'active', label: 'Active' },
   { value: 'draft', label: 'Draft' },
   { value: 'out_of_stock', label: 'Out of Stock' },
+  { value: 'archived', label: 'Archived' },
 ]
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -46,9 +39,10 @@ function StatusBadge({ status }: { status: ProductStatus }) {
         status === 'active' && 'bg-emerald-100 text-emerald-700',
         status === 'draft' && 'bg-gray-100 text-gray-600',
         status === 'out_of_stock' && 'bg-red-100 text-red-700',
+        status === 'archived' && 'bg-amber-100 text-amber-800'
       )}
     >
-      {status === 'active' ? 'Active' : status === 'draft' ? 'Draft' : 'Out of Stock'}
+      {status === 'active' ? 'Active' : status === 'draft' ? 'Draft' : status === 'out_of_stock' ? 'Out of Stock' : 'Archived'}
     </span>
   )
 }
@@ -172,6 +166,15 @@ export default function ProductList() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+  
+  const { data: categories = [] } = useAllCategories()
+  
+  const CATEGORY_PILLS = useMemo(() => {
+    return [
+      { value: 'all', label: 'All' },
+      ...categories.map(c => ({ value: c.slug, label: c.name }))
+    ]
+  }, [categories])
 
   // ── Data fetching ──────────────────────────────────────────────────────────
   const { data, isLoading, isError } = useQuery({
@@ -252,6 +255,7 @@ export default function ProductList() {
   })
 
   const handleToggleStatus = (product: Product) => {
+    if (product.status === 'archived') return
     const next: ProductStatus = product.status === 'active' ? 'draft' : 'active'
     toggleStatusMutation.mutate({ id: product.id, status: next })
   }
@@ -486,6 +490,8 @@ function ProductRow({ product, onDelete, onToggleStatus, isTogglingStatus }: Pro
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ')
 
+  const isArchived = product.status === 'archived'
+
   return (
     <motion.tr
       layout
@@ -560,8 +566,8 @@ function ProductRow({ product, onDelete, onToggleStatus, isTogglingStatus }: Pro
           {/* Toggle status (active ↔ draft) */}
           <button
             onClick={onToggleStatus}
-            disabled={isTogglingStatus || product.status === 'out_of_stock'}
-            title={product.status === 'active' ? 'Set to Draft' : 'Set to Active'}
+            disabled={isTogglingStatus || product.status === 'out_of_stock' || isArchived}
+            title={isArchived ? 'Archived product cannot be activated here' : product.status === 'active' ? 'Set to Draft' : 'Set to Active'}
             className={cn(
               'p-1.5 rounded-luxury transition-colors',
               product.status === 'active'

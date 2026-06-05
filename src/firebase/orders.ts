@@ -116,6 +116,33 @@ export function subscribeToOrders(
   })
 }
 
+export function subscribeToOrder(
+  orderId: string,
+  onUpdate: (order: Order | null) => void
+): Unsubscribe {
+  try {
+    const docRef = doc(db, ORDERS_COL, orderId)
+    const unsubscribe = onSnapshot(
+      docRef,
+      (snapshot: DocumentSnapshot) => {
+        if (snapshot.exists()) {
+          onUpdate({ id: snapshot.id, ...snapshot.data() } as Order)
+        } else {
+          onUpdate(null)
+        }
+      },
+      (error) => {
+        console.error('Error listening to order:', error)
+        onUpdate(null)
+      }
+    )
+    return unsubscribe
+  } catch (err) {
+    console.error('Error in subscribeToOrder setup:', err)
+    return () => {}
+  }
+}
+
 export async function markNotificationSent(orderId: string): Promise<void> {
   await updateDoc(doc(db, ORDERS_COL, orderId), {
     notificationSent: true,

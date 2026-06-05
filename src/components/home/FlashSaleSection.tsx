@@ -25,7 +25,7 @@ export default function FlashSaleSection({ flashSale, products, isLoading }: Fla
   if (!isLoading && !isActive && products.length === 0) return null
 
   return (
-    <section className="py-14 md:py-20 relative overflow-hidden bg-luxury-black">
+    <section className="py-14 md:py-20 relative overflow-hidden bg-gradient-to-br from-[#FDFBF7] to-[#F5EFE6] dark:from-[#2A1F1A] dark:to-[#140D0A]">
       {/* Gold particle decorations */}
       <div className="absolute inset-0 pointer-events-none">
         {[...Array(6)].map((_, i) => (

@@ -4,10 +4,11 @@ import { useAuth } from '@/contexts/AuthContext'
 import { signOut } from '@/firebase/auth'
 import {
   LayoutDashboard, Package, Tag, ShoppingCart, Star,
-  Ticket, Zap, Image, Users, Settings, LogOut, Menu, X, AlertOctagon, Copy
+  Ticket, Zap, Image, Users, Settings, LogOut, Menu, X, AlertOctagon, Copy, Sun, Moon
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/utils/cn'
+import { useThemeStore } from '@/store/themeStore'
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard', permission: null },
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
 
 export default function AdminLayout() {
   const { adminUser, hasPermission } = useAuth()
+  const { theme, toggleTheme } = useThemeStore()
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -188,18 +190,31 @@ export default function AdminLayout() {
       <div className="flex-1 lg:ml-60 xl:ml-64 flex flex-col min-h-screen">
         {/* Mobile header */}
         <header
-          className="lg:hidden sticky top-0 z-20 flex items-center gap-3 px-4 py-3 border-b border-[var(--border)]"
+          className="lg:hidden sticky top-0 z-20 flex items-center justify-between px-4 py-3 border-b border-[var(--border)]"
           style={{ backgroundColor: 'var(--bg-surface)' }}
         >
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="btn-ghost p-2 rounded-full"
-            aria-label="Open menu"
-          >
-            <Menu size={20} />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="btn-ghost p-2 rounded-full"
+              aria-label="Open menu"
+            >
+              <Menu size={20} />
+            </button>
+            <span className="font-serif text-lg font-semibold text-[var(--text-primary)]">Admin Panel</span>
+          </div>
+          <button onClick={toggleTheme} className="p-2 btn-ghost rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
           </button>
-          <span className="font-serif text-lg font-semibold text-[var(--text-primary)]">Admin Panel</span>
         </header>
+
+        {/* Desktop Top Bar */}
+        <div className="hidden lg:flex items-center justify-end px-8 py-3 border-b border-[var(--border)] sticky top-0 z-20" style={{ backgroundColor: 'var(--bg-surface)' }}>
+          <button onClick={toggleTheme} className="flex items-center gap-2 p-2 px-3 rounded-full border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--color-rose)] transition-colors text-sm font-sans font-medium">
+            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+            <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+          </button>
+        </div>
 
         {/* Page content */}
         <main className="flex-1 p-4 md:p-6 lg:p-8">

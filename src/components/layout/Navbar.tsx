@@ -7,12 +7,7 @@ import { useWishlistStore } from '@/store/wishlistStore'
 import { useThemeStore } from '@/store/themeStore'
 import PromoStrip from '@/components/home/PromoStrip'
 
-const NAV_LINKS = [
-  { label: 'Cosmetics', href: '/category/cosmetics' },
-  { label: 'Shoes', href: '/category/shoes' },
-  { label: 'Gifts', href: '/category/gifts' },
-  { label: 'Accessories', href: '/category/accessories' },
-]
+import { useActiveCategories } from '@/hooks/useCategories'
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false)
@@ -21,6 +16,7 @@ export default function Navbar() {
   const { getTotalItems, toggleCart } = useCartStore()
   const { items: wishlistItems } = useWishlistStore()
   const { theme, toggleTheme } = useThemeStore()
+  const { data: categories = [] } = useActiveCategories()
   const cartCount = getTotalItems()
 
   useEffect(() => {
@@ -49,16 +45,16 @@ export default function Navbar() {
             <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden">
               <img src="/favicon.ico" alt="Puspaloy Logo" className="w-full h-full object-contain" />
             </div>
-            <span className="font-serif text-xl font-semibold text-[var(--text-primary)] group-hover:text-gradient-gold transition-all duration-300">
+            <span className="font-serif text-2xl font-bold bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37] bg-clip-text text-transparent transition-all duration-300 tracking-wide">
               PUSPALOY
             </span>
           </Link>
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.map((link) => (
-              <Link key={link.href} to={link.href} className="nav-link">
-                {link.label}
+            {categories.slice(0, 5).map((cat) => (
+              <Link key={cat.id} to={`/category/${cat.slug}`} className="nav-link">
+                {cat.name}
               </Link>
             ))}
           </nav>
@@ -147,14 +143,14 @@ export default function Navbar() {
             style={{ top: 'var(--navbar-h)' }}
           >
             <nav className="container-luxury py-4 flex flex-col gap-1">
-              {NAV_LINKS.map((link) => (
+              {categories.slice(0, 5).map((cat) => (
                 <Link
-                  key={link.href}
-                  to={link.href}
+                  key={cat.id}
+                  to={`/category/${cat.slug}`}
                   onClick={() => setMenuOpen(false)}
                   className="px-4 py-3 rounded-luxury text-[var(--text-primary)] font-sans font-medium hover:bg-[var(--bg-muted)] hover:text-[var(--color-rose)] transition-all duration-200"
                 >
-                  {link.label}
+                  {cat.name}
                 </Link>
               ))}
             </nav>

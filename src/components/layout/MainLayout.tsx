@@ -8,6 +8,7 @@ import MobileNav from './MobileNav'
 import CartDrawer from '@/components/cart/CartDrawer'
 import ZyntraButton from '@/components/ai/ZyntraButton'
 import ZyntraChat from '@/components/ai/ZyntraChat'
+import ScrollToTop from '@/components/shared/ScrollToTop'
 import { pageTransition } from '@/lib/animations'
 
 export default function MainLayout() {
@@ -15,6 +16,7 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      <ScrollToTop />
       <Navbar />
 
       <main className="flex-1 pt-[var(--navbar-h)] pb-[var(--mobile-nav-h)] md:pb-0">
