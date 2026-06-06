@@ -20,6 +20,7 @@ type FormValues = {
   slug: string
   sku: string
   category: string
+  additionalCategories: string[]
   subcategory: string
   tags: string
   price: string
@@ -40,7 +41,7 @@ type FormValues = {
 }
 
 const EMPTY_FORM: FormValues = {
-  name: '', slug: '', sku: '', category: '', subcategory: '',
+  name: '', slug: '', sku: '', category: '', additionalCategories: [], subcategory: '',
   tags: '', price: '', discountPrice: '', stock: '', status: 'active',
   featured: false, newArrival: false, bestSeller: false, trending: false,
   description: '', htmlDescription: '', youtubeVideoId: '',
@@ -298,6 +299,7 @@ export default function ProductForm() {
         slug: existing.slug,
         sku: existing.sku,
         category: existing.category,
+        additionalCategories: existing.additionalCategories ?? [],
         subcategory: existing.subcategory ?? '',
         tags: existing.tags?.join(', ') ?? '',
         price: String(existing.price),
@@ -335,6 +337,8 @@ export default function ProductForm() {
         slug: form.slug || generateSlug(form.name),
         sku: form.sku.trim(),
         category: form.category,
+        additionalCategories: form.additionalCategories,
+        categorySlugs: [form.category, ...form.additionalCategories].filter(Boolean),
         subcategory: form.subcategory.trim(),
         tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
         price: Number(form.price),
@@ -447,6 +451,27 @@ export default function ProductForm() {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">Additional Categories</label>
+                  <select 
+                    multiple
+                    value={form.additionalCategories}
+                    onChange={(e) => {
+                      const values = Array.from(e.target.selectedOptions, option => option.value);
+                      set('additionalCategories', values);
+                    }}
+                    className="input-luxury pr-10 min-h-[100px]"
+                  >
+                    {categories.filter(c => c.slug !== form.category).map((c) => (
+                      <option key={c.id} value={c.slug}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-[var(--text-muted)] mt-1">Hold Ctrl/Cmd to select multiple</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">Subcategory</label>
                   <input type="text" value={form.subcategory} onChange={(e) => set('subcategory', e.target.value)} className="input-luxury" placeholder="e.g. Serums" />

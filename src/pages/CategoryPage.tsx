@@ -31,7 +31,7 @@ export default function CategoryPage() {
 
   const title = currentCategory?.name || 'Category'
   const description = currentCategory?.description || `Explore our ${title} collection`
-  const banner = currentCategory?.image || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1400&q=80'
+  const banner = currentCategory?.banner || currentCategory?.image || 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1400&q=80'
 
   return (
     <>
@@ -39,7 +39,7 @@ export default function CategoryPage() {
         title={title}
         description={description}
         image={banner}
-        url={`https://puspaloy.com/category/${slug}`}
+        url={`https://puspaloygiftzone.shop/category/${slug}`}
       />
 
       <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>

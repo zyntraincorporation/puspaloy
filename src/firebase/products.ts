@@ -45,10 +45,11 @@ export async function getProductsByCategory(
   pageSize = 24,
   lastDoc?: DocumentSnapshot
 ) {
-  // Use a single-field query to avoid requiring composite indexes
+  // Use array-contains to match products that have this category
+  // either as primary or as an additional category.
   const q = query(
     collection(db, PRODUCTS_COL),
-    where('category', '==', category)
+    where('categorySlugs', 'array-contains', category)
   )
   const snap = await getDocs(q)
   
@@ -92,6 +93,8 @@ export async function getAllActiveProductsLite(): Promise<ProductLite[]> {
       name: data.name,
       slug: data.slug,
       category: data.category,
+      additionalCategories: data.additionalCategories ?? [],
+      categorySlugs: data.categorySlugs ?? [],
       subcategory: data.subcategory,
       tags: data.tags ?? [],
       price: data.price,

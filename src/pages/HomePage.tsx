@@ -30,8 +30,9 @@ export default function HomePage() {
     <>
       <SEO 
         title="PUSPALOY – Luxury Beauty & Gifts Bangladesh"
-        description="PUSPALOY – Premium cosmetics, women's shoes, luxury gifts, and fashion accessories from Bangladesh. Shop the finest luxury products online."
-        url="https://puspaloy.com/"
+        description="Discover luxury cosmetics, elegant women's shoes, personalized gifts, and trendy accessories at Puspaloy. Premium quality, exclusive collections, and fast delivery across Bangladesh."
+        image={content?.heroBanners[0]?.image || "https://puspaloygiftzone.shop/og-image.jpg"}
+        url="https://puspaloygiftzone.shop/"
       />
 
       <motion.div variants={pageTransition} initial="hidden" animate="visible">

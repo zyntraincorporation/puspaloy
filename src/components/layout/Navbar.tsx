@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingBag, Heart, Search, Menu, X, Sun, Moon } from 'lucide-react'
+import { ShoppingBag, Heart, Search, Menu, X, Sun, Moon, ChevronDown } from 'lucide-react'
 import { useCartStore } from '@/store/cartStore'
 import { useWishlistStore } from '@/store/wishlistStore'
 import { useThemeStore } from '@/store/themeStore'
@@ -52,11 +52,19 @@ export default function Navbar() {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-8">
-            {categories.slice(0, 5).map((cat) => (
-              <Link key={cat.id} to={`/category/${cat.slug}`} className="nav-link">
-                {cat.name}
-              </Link>
-            ))}
+            <div className="relative group">
+              <button className="nav-link flex items-center gap-1 py-4">
+                Categories <ChevronDown size={14} className="group-hover:rotate-180 transition-transform" />
+              </button>
+              <div className="absolute top-full left-0 w-64 bg-[var(--bg-surface)] border border-[var(--border)] rounded-luxury-lg shadow-luxury-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-left flex flex-col py-2 max-h-[70vh] overflow-y-auto">
+                {categories.map((cat) => (
+                  <Link key={cat.id} to={`/category/${cat.slug}`} className="px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--bg-muted)] hover:text-[var(--color-rose)] flex items-center gap-3">
+                    {cat.icon && !cat.icon.startsWith('http') ? <span>{cat.icon}</span> : cat.icon ? <img src={cat.icon} alt="" className="w-5 h-5 rounded-full object-cover" /> : null}
+                    {cat.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
           </nav>
 
           {/* Actions */}
@@ -142,8 +150,8 @@ export default function Navbar() {
             className="fixed inset-x-0 z-40 md:hidden glass shadow-luxury-md"
             style={{ top: 'var(--navbar-h)' }}
           >
-            <nav className="container-luxury py-4 flex flex-col gap-1">
-              {categories.slice(0, 5).map((cat) => (
+            <nav className="container-luxury py-4 flex flex-col gap-1 max-h-[60vh] overflow-y-auto">
+              {categories.map((cat) => (
                 <Link
                   key={cat.id}
                   to={`/category/${cat.slug}`}

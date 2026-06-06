@@ -32,7 +32,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': process.env.VITE_APP_URL || 'https://puspaloy.com',
+        'HTTP-Referer': process.env.VITE_APP_URL || 'https://puspaloygiftzone.shop',
         'X-Title': 'PUSPALOY Admin',
       },
       body: JSON.stringify({

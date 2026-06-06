@@ -104,7 +104,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://puspaloy.com',
+        'HTTP-Referer': 'https://puspaloygiftzone.shop',
         'X-Title': 'PUSPALOY Zyntra Assistant',
       },
       body: JSON.stringify(payload),

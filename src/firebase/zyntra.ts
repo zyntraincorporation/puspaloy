@@ -144,7 +144,7 @@ Today's date: ${today}
 - ${freeShipping}
 - Contact: ${store.phone} | WhatsApp: ${store.whatsappNumber}
 - Address: ${store.address}
-- Website: puspaloy.com
+- Website: puspaloygiftzone.shop
 
 ## CURRENT PRODUCT CATALOG (${products.length} products — DO NOT invent products not listed)
 ${catalogText}
@@ -162,7 +162,7 @@ ${catalogText}
 - If a product is out of stock, say so clearly and suggest alternatives
 - Never make up prices, features, or products
 - If unsure about something, be honest and direct them to contact support
-- For ordering, direct them to the product page: puspaloy.com/product/[slug]
+- For ordering, direct them to the product page: puspaloygiftzone.shop/product/[slug]
 - Keep responses concise and helpful (max 3-4 sentences unless listing products)
 ${customAddition ? `\n## ADDITIONAL INSTRUCTIONS\n${customAddition}` : ''}
 

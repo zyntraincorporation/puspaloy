@@ -1,11 +1,11 @@
 // src/admin/pages/Categories.tsx
 // Category management — add, edit, reorder, toggle active
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Tag, Plus, Edit2, Trash2, X, Loader2, GripVertical,
-  ChevronDown, ChevronUp, ToggleLeft, ToggleRight,
+  ChevronDown, ChevronUp, ToggleLeft, ToggleRight, RotateCcw, ImagePlus
 } from 'lucide-react'
 import {
   collection, getDocs, addDoc, doc, updateDoc,
@@ -21,6 +21,7 @@ import {
   createCategory,
   updateCategory,
   deleteCategory as removeCategory,
+  restoreDefaultCategories,
 } from '@/firebase/categories'
 import { useAllCategories } from '@/hooks/useCategories'
 import type { Product } from '@/types'
@@ -35,6 +36,7 @@ type CatForm = {
   slug: string
   icon: string
   image: string
+  banner: string
   description: string
   order: string
   active: boolean
@@ -42,8 +44,91 @@ type CatForm = {
 }
 
 const EMPTY_FORM: CatForm = {
-  name: '', nameBn: '', slug: '', icon: '✨',
-  image: '', description: '', order: '0', active: true, subcategories: [],
+  name: '', nameBn: '', slug: '', icon: '',
+  image: '', banner: '', description: '', order: '0', active: true, subcategories: [],
+}
+
+// ── Image Uploader ─────────────────────────────────────────
+function ImageUploader({
+  label, value, onChange, folder,
+}: {
+  label: string
+  value: string
+  onChange: (url: string) => void
+  folder: string
+}) {
+  const [progress, setProgress] = useState(0)
+  const [uploading, setUploading] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleFile = async (file: File) => {
+    setUploading(true)
+    setProgress(20)
+    try {
+      const apiKey = import.meta.env.VITE_IMGBB_API_KEY
+      if (!apiKey) throw new Error('ImgBB API key is missing. Add VITE_IMGBB_API_KEY to your .env file.')
+
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+        method: 'POST',
+        body: formData,
+      })
+      
+      const data = await response.json()
+      if (data.success) {
+        setProgress(100)
+        onChange(data.data.url)
+      } else {
+        throw new Error(data.error?.message || 'Upload failed')
+      }
+    } catch (err: any) {
+      console.error('ImgBB Upload Error:', err)
+      alert(err.message || 'Failed to upload image')
+    } finally {
+      setUploading(false)
+      setProgress(0)
+    }
+  }
+
+  return (
+    <div>
+      <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-2">{label}</label>
+      {value ? (
+        <div className="relative inline-block">
+          <img src={value} alt="" className="w-24 h-24 rounded-luxury object-cover border border-[var(--border)]" />
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center"
+          >
+            <X size={10} />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="w-24 h-24 rounded-luxury border-2 border-dashed border-[var(--border)] flex flex-col items-center justify-center gap-1 text-[var(--text-muted)] hover:border-[var(--color-rose)] transition-colors"
+        >
+          {uploading ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <ImagePlus size={16} />
+          )}
+          <span className="text-[10px]">Upload</span>
+        </button>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+      />
+    </div>
+  )
 }
 
 // ── Category Form Modal ────────────────────────────────────
@@ -92,25 +177,25 @@ function CategoryModal({
         </div>
 
         <div className="p-5 space-y-4">
-          {/* Icon picker */}
-          <div>
-            <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-2">Icon</label>
-            <div className="flex flex-wrap gap-2">
-              {CATEGORY_ICONS.map((ic) => (
-                <button
-                  key={ic} type="button"
-                  onClick={() => set('icon', ic)}
-                  className={cn(
-                    'w-9 h-9 text-xl rounded-luxury flex items-center justify-center border-2 transition-colors',
-                    form.icon === ic
-                      ? 'border-[var(--color-rose)] bg-rose-50 dark:bg-rose-950/20'
-                      : 'border-[var(--border)] hover:border-[var(--color-rose)]'
-                  )}
-                >
-                  {ic}
-                </button>
-              ))}
-            </div>
+          <div className="grid grid-cols-3 gap-4">
+            <ImageUploader
+              label="Icon (Image or Emoji)"
+              value={form.icon}
+              onChange={(url) => set('icon', url)}
+              folder="categories/icons"
+            />
+            <ImageUploader
+              label="Category Image"
+              value={form.image}
+              onChange={(url) => set('image', url)}
+              folder="categories/images"
+            />
+            <ImageUploader
+              label="Category Banner"
+              value={form.banner}
+              onChange={(url) => set('banner', url)}
+              folder="categories/banners"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -142,13 +227,7 @@ function CategoryModal({
             </div>
           </div>
 
-          <div>
-            <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">Image URL</label>
-            <input value={form.image} onChange={(e) => set('image', e.target.value)} className="input-luxury" placeholder="https://..." />
-            {form.image && (
-              <img src={form.image} alt="" className="mt-2 w-full h-28 object-cover rounded-luxury" />
-            )}
-          </div>
+
 
           <div>
             <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">Description</label>
@@ -280,10 +359,14 @@ function CategoryRow({
           <img src={category.image} alt={category.name} className="w-12 h-12 rounded-luxury object-cover" />
         ) : (
           <div className="w-12 h-12 rounded-luxury bg-[var(--bg-muted)] flex items-center justify-center text-2xl">
-            {category.icon}
+            {category.icon && !category.icon.startsWith('http') ? category.icon : <Tag size={20} />}
           </div>
         )}
-        <span className="absolute -bottom-1 -right-1 text-base">{category.icon}</span>
+        {category.icon && category.icon.startsWith('http') ? (
+           <img src={category.icon} alt="" className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white object-cover" />
+        ) : (
+           <span className="absolute -bottom-1 -right-1 text-base">{category.icon}</span>
+        )}
       </div>
 
       <div className="flex-1 min-w-0">
@@ -373,6 +456,7 @@ export default function Categories() {
   const [showModal, setShowModal] = useState(false)
   const [editingCat, setEditingCat] = useState<Category | null>(null)
   const [saving, setSaving] = useState(false)
+  const [restoring, setRestoring] = useState(false)
   const [tab, setTab] = useState<'active' | 'archive'>('active')
 
   const { data: allCategories = [], isLoading } = useAllCategories()
@@ -390,6 +474,7 @@ export default function Categories() {
         slug: form.slug.trim() || form.name.toLowerCase().replace(/\s+/g, '-'),
         icon: form.icon,
         image: form.image.trim(),
+        banner: form.banner.trim(),
         description: form.description.trim(),
         order: Number(form.order) || 0,
         active: form.active,
@@ -433,6 +518,20 @@ export default function Categories() {
     }
   }
 
+  const handleRestoreDefaults = async () => {
+    if (!window.confirm("Restore missing default categories? This will not delete any existing categories.")) return;
+    setRestoring(true);
+    try {
+      await restoreDefaultCategories();
+      toast('Default categories restored', 'success');
+      qc.invalidateQueries({ queryKey: ['categories'] });
+    } catch {
+      toast('Failed to restore defaults', 'error');
+    } finally {
+      setRestoring(false);
+    }
+  }
+
   const openCreate = () => { setEditingCat(null); setShowModal(true) }
   const openEdit = (cat: Category) => { setEditingCat(cat); setShowModal(true) }
 
@@ -440,8 +539,9 @@ export default function Categories() {
     name: editingCat.name,
     nameBn: editingCat.nameBn ?? '',
     slug: editingCat.slug,
-    icon: editingCat.icon ?? '✨',
+    icon: editingCat.icon ?? '',
     image: editingCat.image ?? '',
+    banner: editingCat.banner ?? '',
     description: editingCat.description ?? '',
     order: String(editingCat.order ?? 0),
     active: editingCat.active,
@@ -458,9 +558,15 @@ export default function Categories() {
             {categories.length} categor{categories.length !== 1 ? 'ies' : 'y'} · drag to reorder
           </p>
         </div>
-        <button onClick={openCreate} className="btn-primary gap-2">
-          <Plus size={16} /> New Category
-        </button>
+        <div className="flex items-center gap-3">
+          <button onClick={handleRestoreDefaults} disabled={restoring} className="btn-ghost gap-2 text-sm">
+            {restoring ? <Loader2 size={16} className="animate-spin" /> : <RotateCcw size={16} />} 
+            Restore Defaults
+          </button>
+          <button onClick={openCreate} className="btn-primary gap-2">
+            <Plus size={16} /> New Category
+          </button>
+        </div>
       </div>
 
       {/* Stats row */}

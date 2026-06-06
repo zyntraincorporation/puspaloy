@@ -17,6 +17,8 @@ export interface Product {
   slug: string
   sku: string
   category: ProductCategory
+  additionalCategories: string[]
+  categorySlugs: string[]
   subcategory: string
   tags: string[]
   price: number
@@ -51,6 +53,8 @@ export interface ProductLite {
   name: string
   slug: string
   category: ProductCategory
+  additionalCategories: string[]
+  categorySlugs: string[]
   subcategory: string
   tags: string[]
   price: number
@@ -83,6 +87,7 @@ export interface Category {
   slug: string
   icon: string
   image: string
+  banner: string
   description: string
   order: number
   active: boolean

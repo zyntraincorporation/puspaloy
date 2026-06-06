@@ -81,17 +81,80 @@ export async function deleteCategory(id: string, categorySlug: string): Promise<
     updatedAt: serverTimestamp()
   })
 
-  // 2. Archive all products in this category
+  // 2. Move all products in this category to "uncategorized"
   // This prevents breaking existing products and allows recovery
-  const productsQ = query(collection(db, PRODUCTS_COL), where('category', '==', categorySlug))
+  const productsQ = query(collection(db, PRODUCTS_COL), where('categorySlugs', 'array-contains', categorySlug))
   const productsSnap = await getDocs(productsQ)
   
   productsSnap.docs.forEach(d => {
+    const data = d.data()
+    // If the deleted category was the primary category, switch to uncategorized.
+    const isPrimary = data.category === categorySlug;
+    const newCategory = isPrimary ? 'uncategorized' : data.category;
+    
+    // Remove the deleted category from additionalCategories
+    const additionalCategories = (data.additionalCategories || []).filter((c: string) => c !== categorySlug);
+    
+    // Rebuild categorySlugs
+    const categorySlugs = [newCategory, ...additionalCategories];
+
     batch.update(d.ref, {
-      status: 'archived',
+      category: newCategory,
+      additionalCategories,
+      categorySlugs,
       updatedAt: serverTimestamp()
     })
   })
 
   await batch.commit()
+}
+
+export const DEFAULT_CATEGORIES = [
+  { name: 'Fashion', slug: 'fashion', icon: '👗' },
+  { name: 'Shoes', slug: 'shoes', icon: '👠' },
+  { name: 'Cosmetics', slug: 'cosmetics', icon: '💄' },
+  { name: 'Jewelry', slug: 'jewelry', icon: '💍' },
+  { name: 'Gifts', slug: 'gifts', icon: '🎁' },
+  { name: 'Accessories', slug: 'accessories', icon: '🎀' },
+  { name: 'Bags', slug: 'bags', icon: '👜' },
+  { name: 'Watches', slug: 'watches', icon: '⌚' },
+  { name: 'Women\'s Collection', slug: 'womens-collection', icon: '👩' },
+  { name: 'Men\'s Collection', slug: 'mens-collection', icon: '👨' },
+  { name: 'Beauty & Care', slug: 'beauty-care', icon: '✨' },
+  { name: 'Home Decor', slug: 'home-decor', icon: '🏡' },
+  { name: 'Premium Collection', slug: 'premium-collection', icon: '💎' },
+  { name: 'New Arrivals', slug: 'new-arrivals', icon: '🌟' },
+  { name: 'Best Sellers', slug: 'best-sellers', icon: '🔥' },
+];
+
+export async function restoreDefaultCategories(): Promise<void> {
+  const batch = writeBatch(db);
+  const categoriesRef = collection(db, CATEGORIES_COL);
+  
+  let order = 0;
+  for (const cat of DEFAULT_CATEGORIES) {
+    const q = query(categoriesRef, where('slug', '==', cat.slug));
+    const snap = await getDocs(q);
+    
+    if (snap.empty) {
+      const newRef = doc(categoriesRef);
+      batch.set(newRef, {
+        name: cat.name,
+        nameBn: '',
+        slug: cat.slug,
+        icon: cat.icon,
+        image: '',
+        banner: '',
+        description: '',
+        order: order++,
+        active: true,
+        subcategories: [],
+        productCount: 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+  }
+  
+  await batch.commit();
 }

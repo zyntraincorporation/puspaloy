@@ -68,7 +68,7 @@ export default function ProductPage() {
   if (!product || isError) return <ProductNotFound />
 
   const effectivePrice = getEffectivePrice(product.price, product.discountPrice, product.flashSalePrice)
-  const canonicalUrl = `https://puspaloy.com/product/${product.slug}`
+  const canonicalUrl = `https://puspaloygiftzone.shop/product/${product.slug}`
 
   // Structured data for SEO
   const jsonLd = {
@@ -133,10 +133,8 @@ export default function ProductPage() {
         <meta property="product:price:currency" content="BDT" />
       </SEO>
 
-      <motion.div
-        variants={pageTransition}
-        initial="hidden"
-        animate="visible"
+      <div
+        className="min-h-screen pb-12"
         style={{ backgroundColor: 'var(--bg-primary)' }}
       >
         {/* Breadcrumb */}
@@ -200,7 +198,7 @@ export default function ProductPage() {
 
         {/* Related products */}
         <RelatedProducts product={product} />
-      </motion.div>
+      </div>
     </>
   )
 }
