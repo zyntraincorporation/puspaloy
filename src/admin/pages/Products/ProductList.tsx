@@ -203,7 +203,12 @@ export default function ProductList() {
     }
 
     if (categoryFilter !== 'all') {
-      list = list.filter((p) => p.category === categoryFilter)
+      // FIXED: check all categorySlugs (primary + additional), not just primary
+      list = list.filter((p) =>
+        Array.isArray(p.categorySlugs)
+          ? p.categorySlugs.includes(categoryFilter)
+          : p.category === categoryFilter
+      )
     }
 
     if (statusFilter !== 'all') {
@@ -485,10 +490,16 @@ interface ProductRowProps {
 }
 
 function ProductRow({ product, onDelete, onToggleStatus, isTogglingStatus }: ProductRowProps) {
+  // Build display label for primary category
   const categoryLabel = product.category
-    .split('-')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ')
+    ? product.category
+        .split('-')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ')
+    : '—'
+
+  // Additional categories beyond primary
+  const additionalCats = (product.additionalCategories ?? []).filter(Boolean)
 
   const isArchived = product.status === 'archived'
 
@@ -529,7 +540,18 @@ function ProductRow({ product, onDelete, onToggleStatus, isTogglingStatus }: Pro
 
       {/* Category */}
       <td className="px-4 py-3">
-        <span className="font-sans text-sm text-[var(--text-secondary)]">{categoryLabel}</span>
+        <div className="space-y-1">
+          <span className="font-sans text-sm text-[var(--text-secondary)] font-medium">{categoryLabel}</span>
+          {additionalCats.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {additionalCats.map((slug) => (
+                <span key={slug} className="inline-block px-1.5 py-0.5 bg-[var(--bg-muted)] rounded text-[9px] text-[var(--text-muted)] font-mono">
+                  +{slug}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </td>
 
       {/* Price */}

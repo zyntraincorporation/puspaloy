@@ -13,9 +13,11 @@ import {
   Plus,
   Clock,
   Sparkles,
+  Tag,
 } from 'lucide-react'
 import { subscribeToOrders } from '@/firebase/orders'
 import { getAllProductsAdmin } from '@/firebase/products'
+import { useAllCategories } from '@/hooks/useCategories'
 import type { Order, OrderStatus } from '@/types'
 import { formatPrice, formatDateTime } from '@/utils/formatters'
 import { cn } from '@/utils/cn'
@@ -164,6 +166,12 @@ export default function Dashboard() {
     staleTime: 5 * 60 * 1000,
   })
 
+  // Category data
+  const { data: allCategoriesData = [] } = useAllCategories()
+  const nonArchivedCats = allCategoriesData.filter(c => !c.archived)
+  const activeCats = nonArchivedCats.filter(c => c.active)
+  const hiddenCats = nonArchivedCats.filter(c => !c.active)
+
   // Derived stats
   const totalOrders = orders.length
   const totalRevenue = orders
@@ -251,6 +259,60 @@ export default function Dashboard() {
           accentClass="text-indigo-600"
           iconBg="bg-indigo-50"
         />
+      </motion.div>
+
+      {/* ── Category overview ── */}
+      <motion.div
+        variants={fadeInUp}
+        initial="hidden"
+        animate="show"
+        transition={{ delay: 0.25 }}
+        className="rounded-luxury-lg border border-[var(--border)] bg-[var(--bg-surface)] overflow-hidden shadow-sm"
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+          <div className="flex items-center gap-2">
+            <Tag size={16} className="text-[var(--color-rose)]" />
+            <h2 className="font-serif text-lg font-semibold text-[var(--text-primary)]">Categories</h2>
+          </div>
+          <Link
+            to="/admin/categories"
+            className="font-sans text-xs font-semibold text-[var(--color-rose)] hover:underline underline-offset-2"
+          >
+            Manage →
+          </Link>
+        </div>
+        <div className="grid grid-cols-3 divide-x divide-[var(--border)]">
+          {[
+            { label: 'Total Categories', value: nonArchivedCats.length, color: 'text-[var(--text-primary)]' },
+            { label: 'Active (Visible)', value: activeCats.length, color: 'text-emerald-600' },
+            { label: 'Hidden', value: hiddenCats.length, color: 'text-[var(--text-muted)]' },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="p-4 text-center">
+              <p className={`font-serif text-2xl font-bold ${color}`}>{value}</p>
+              <p className="font-sans text-xs text-[var(--text-muted)] mt-0.5">{label}</p>
+            </div>
+          ))}
+        </div>
+        {nonArchivedCats.length > 0 && (
+          <div className="px-5 py-3 border-t border-[var(--border)]">
+            <div className="flex flex-wrap gap-2">
+              {activeCats.slice(0, 10).map(cat => (
+                <Link
+                  key={cat.id}
+                  to={`/admin/categories`}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-[var(--bg-muted)] rounded-full font-sans text-xs text-[var(--text-secondary)] hover:text-[var(--color-rose)] transition-colors"
+                >
+                  {cat.icon && !cat.icon.startsWith('http') ? <span>{cat.icon}</span> : null}
+                  {cat.name}
+                  <span className="text-[var(--text-muted)] font-mono">·{cat.productCount ?? 0}</span>
+                </Link>
+              ))}
+              {activeCats.length > 10 && (
+                <span className="px-2.5 py-1 font-sans text-xs text-[var(--text-muted)]">+{activeCats.length - 10} more</span>
+              )}
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* ── Recent orders ── */}

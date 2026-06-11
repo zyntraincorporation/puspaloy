@@ -41,25 +41,48 @@ export default function OrderConfirmationPage() {
     let isResolved = false
     setIsLoading(true)
 
-    // Listen to real-time updates so if the order is still syncing to Firestore, 
-    // it will automatically pop up here the millisecond it's ready!
+    // onSnapshot fires immediately — even before the Firestore write has fully
+    // propagated globally. We must IGNORE null callbacks while still loading so
+    // we never flip to the "not found" screen prematurely.
     const unsubscribe = subscribeToOrder(orderId, (fetchedOrder) => {
-      setOrder(fetchedOrder)
       if (fetchedOrder) {
+        // Order confirmed — show success UI
         isResolved = true
+        setOrder(fetchedOrder)
         setIsLoading(false)
       }
+      // null callback while loading → keep spinner running; the listener will
+      // fire again the moment the document appears in Firestore.
     })
 
-    // Timeout guard: if order doesn't appear after 10 seconds, assume it failed.
+    // Secondary safety net: if onSnapshot somehow missed the write event
+    // (e.g. offline → online transition), do a direct getDoc after 3 seconds.
+    const retryId = setTimeout(async () => {
+      if (isResolved) return
+      try {
+        const { getOrderById } = await import('@/firebase/orders')
+        const fetched = await getOrderById(orderId)
+        if (fetched && !isResolved) {
+          isResolved = true
+          setOrder(fetched)
+          setIsLoading(false)
+        }
+      } catch {
+        // Silently ignore — final timeout below will handle the failure state
+      }
+    }, 3000)
+
+    // Final timeout guard: if order hasn't appeared after 20 seconds, give up.
     const timeoutId = setTimeout(() => {
       if (!isResolved) {
         setIsLoading(false)
+        // Leave order as null so the "not found" UI renders
       }
-    }, 10000)
+    }, 20000)
 
     return () => {
       unsubscribe()
+      clearTimeout(retryId)
       clearTimeout(timeoutId)
     }
   }, [orderId])
@@ -83,9 +106,26 @@ export default function OrderConfirmationPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 mx-auto rounded-full border-4 border-[var(--color-rose)] border-t-transparent animate-spin" />
-          <p className="font-sans text-[var(--text-muted)]">Loading your order...</p>
+        <div className="text-center space-y-5 px-6 max-w-sm">
+          {/* Pulsing ring + spinning ring layered */}
+          <div className="relative w-20 h-20 mx-auto">
+            <div className="absolute inset-0 rounded-full border-4 border-[var(--color-rose)] opacity-20 animate-ping" />
+            <div className="absolute inset-0 rounded-full border-4 border-[var(--color-rose)] border-t-transparent animate-spin" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <CheckCircle size={24} className="text-[var(--color-rose)]" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <p className="font-serif text-xl text-[var(--text-primary)] font-semibold">
+              Confirming your order…
+            </p>
+            <p className="font-sans text-sm text-[var(--text-muted)] leading-relaxed">
+              Your order was placed successfully. Just a moment while we load your confirmation details.
+            </p>
+          </div>
+          <p className="font-sans text-xs text-[var(--text-muted)] opacity-60">
+            Order ID: <span className="font-mono">{orderId}</span>
+          </p>
         </div>
       </div>
     )

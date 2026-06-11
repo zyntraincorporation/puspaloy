@@ -196,3 +196,65 @@ export async function incrementSalesCount(productId: string, qty: number): Promi
     stock: increment(-qty),
   })
 }
+
+// ── Category helpers ──────────────────────────────────────────────────────────
+
+/**
+ * Move a single product to a new primary category.
+ * Keeps it in its current additionalCategories list.
+ */
+export async function moveProductToCategory(
+  productId: string,
+  newCategorySlug: string
+): Promise<void> {
+  const snap = await getDoc(doc(db, PRODUCTS_COL, productId))
+  if (!snap.exists()) throw new Error('Product not found')
+  const data = snap.data()
+
+  const additionalCategories = (data.additionalCategories ?? []).filter(
+    (s: string) => s !== newCategorySlug
+  )
+  const categorySlugs = Array.from(
+    new Set([newCategorySlug, ...additionalCategories].filter(Boolean))
+  )
+
+  await updateDoc(doc(db, PRODUCTS_COL, productId), {
+    category: newCategorySlug,
+    additionalCategories,
+    categorySlugs,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+/**
+ * Bulk move multiple products to a new primary category.
+ */
+export async function bulkMoveProductsToCategory(
+  productIds: string[],
+  newCategorySlug: string
+): Promise<void> {
+  const { writeBatch } = await import('firebase/firestore')
+  const batch = writeBatch(db)
+
+  for (const id of productIds) {
+    const snap = await getDoc(doc(db, PRODUCTS_COL, id))
+    if (!snap.exists()) continue
+    const data = snap.data()
+
+    const additionalCategories = (data.additionalCategories ?? []).filter(
+      (s: string) => s !== newCategorySlug
+    )
+    const categorySlugs = Array.from(
+      new Set([newCategorySlug, ...additionalCategories].filter(Boolean))
+    )
+
+    batch.update(doc(db, PRODUCTS_COL, id), {
+      category: newCategorySlug,
+      additionalCategories,
+      categorySlugs,
+      updatedAt: serverTimestamp(),
+    })
+  }
+
+  await batch.commit()
+}

@@ -58,7 +58,7 @@ export default function HomePage() {
         {/* ── 4. Flash Sale ──────────────────────────────────── */}
         <FlashSaleSection
           flashSale={flashData?.flashSale}
-          products={flashData?.products ?? []}
+          products={(flashData?.products ?? []) as unknown as Product[]}
           isLoading={flashLoading}
         />
 

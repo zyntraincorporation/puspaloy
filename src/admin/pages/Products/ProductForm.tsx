@@ -330,15 +330,23 @@ export default function ProductForm() {
       toast('Name, price and featured image are required', 'error')
       return
     }
+    if (!form.category) {
+      toast('Please select a primary category', 'error')
+      return
+    }
     setSaving(true)
     try {
+      const categorySlugs = Array.from(
+        new Set([form.category, ...form.additionalCategories].filter(Boolean))
+      )
+
       const payload: Omit<Product, 'id' | 'createdAt' | 'updatedAt'> = {
         name: form.name.trim(),
         slug: form.slug || generateSlug(form.name),
         sku: form.sku.trim(),
         category: form.category,
         additionalCategories: form.additionalCategories,
-        categorySlugs: [form.category, ...form.additionalCategories].filter(Boolean),
+        categorySlugs,
         subcategory: form.subcategory.trim(),
         tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
         price: Number(form.price),
@@ -434,41 +442,71 @@ export default function ProductForm() {
                   <input type="text" value={form.sku} onChange={(e) => set('sku', e.target.value)} className="input-luxury font-mono text-sm" placeholder="e.g. CSM-001" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div>
-                  <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">Category *</label>
+                  <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">
+                    Primary Category *
+                    <span className="ml-1 text-[10px] text-[var(--color-rose)] font-normal">(required — main category)</span>
+                  </label>
                   <select 
                     value={form.category}
-                    onChange={(e) => set('category', e.target.value)}
+                    onChange={(e) => {
+                      set('category', e.target.value)
+                      // Remove from additionalCategories if it was there
+                      set('additionalCategories', form.additionalCategories.filter(s => s !== e.target.value))
+                    }}
                     className="input-luxury pr-10 appearance-none bg-no-repeat"
                     style={{ backgroundImage: 'none' }}
                   >
-                    <option value="" disabled>Select category</option>
-                    {categories.map((c) => (
+                    <option value="" disabled>Select primary category</option>
+                    {categories.filter(c => !c.archived && c.slug !== 'uncategorized').map((c) => (
                       <option key={c.id} value={c.slug}>
-                        {c.name}
+                        {c.icon && !c.icon.startsWith('http') ? c.icon + ' ' : ''}{c.name}
                       </option>
                     ))}
                   </select>
                 </div>
+
                 <div>
-                  <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">Additional Categories</label>
-                  <select 
-                    multiple
-                    value={form.additionalCategories}
-                    onChange={(e) => {
-                      const values = Array.from(e.target.selectedOptions, option => option.value);
-                      set('additionalCategories', values);
-                    }}
-                    className="input-luxury pr-10 min-h-[100px]"
-                  >
-                    {categories.filter(c => c.slug !== form.category).map((c) => (
-                      <option key={c.id} value={c.slug}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[10px] text-[var(--text-muted)] mt-1">Hold Ctrl/Cmd to select multiple</p>
+                  <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">
+                    Additional Categories
+                    <span className="ml-1 text-[10px] text-[var(--text-muted)] font-normal">(optional — product appears in all selected)</span>
+                  </label>
+                  <div className="max-h-44 overflow-y-auto border border-[var(--border)] rounded-luxury p-2 space-y-1 bg-[var(--bg-surface)]">
+                    {categories
+                      .filter(c => !c.archived && c.slug !== 'uncategorized' && c.slug !== form.category)
+                      .map((c) => {
+                        const checked = form.additionalCategories.includes(c.slug)
+                        return (
+                          <label key={c.id} className="flex items-center gap-2.5 cursor-pointer p-1.5 rounded hover:bg-[var(--bg-muted)] transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  set('additionalCategories', [...form.additionalCategories, c.slug])
+                                } else {
+                                  set('additionalCategories', form.additionalCategories.filter(s => s !== c.slug))
+                                }
+                              }}
+                              className="rounded accent-[var(--color-rose)]"
+                            />
+                            <span className="font-sans text-sm text-[var(--text-primary)]">
+                              {c.icon && !c.icon.startsWith('http') ? c.icon + ' ' : ''}{c.name}
+                            </span>
+                          </label>
+                        )
+                      })
+                    }
+                    {categories.filter(c => !c.archived && c.slug !== 'uncategorized' && c.slug !== form.category).length === 0 && (
+                      <p className="text-xs text-[var(--text-muted)] p-2">No other categories available.</p>
+                    )}
+                  </div>
+                  {form.additionalCategories.length > 0 && (
+                    <p className="font-sans text-xs text-[var(--text-muted)] mt-1.5">
+                      ✓ Product will also appear in: {form.additionalCategories.join(', ')}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">

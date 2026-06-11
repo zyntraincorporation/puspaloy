@@ -611,54 +611,121 @@
    @media print — Invoice / PDF print styles
    Hides all nav/footer/buttons, shows only the invoice in clean A4 format.
    Works for both browser Print and "Save as PDF" on mobile.
+
+   CRITICAL DESIGN NOTE:
+   This stylesheet must defeat dark-mode CSS custom properties.
+   We do this by resetting ALL --var tokens to their light-mode values
+   at the :root level inside @media print. This means even if the user
+   has [data-theme="dark"] active, the CSS variables resolve to light values
+   while the print dialog is open.
    ========================================================================== */
 @media print {
-  /* Hide everything that's not the invoice */
+  /* ── Step 1: Reset ALL CSS custom properties to light-mode values ── */
+  /* This defeats any [data-theme="dark"] overrides completely. */
+  :root,
+  [data-theme],
+  [data-theme="dark"] {
+    /* Backgrounds → white / light */
+    --bg-primary:  #faf9f7 !important;
+    --bg-surface:  #ffffff !important;
+    --bg-muted:    #f5f0eb !important;
+    --bg-subtle:   #ede8e3 !important;
+
+    /* Text → dark */
+    --text-primary:   #1f1007 !important;
+    --text-secondary: #5a4a3a !important;
+    --text-muted:     #9a8878 !important;
+    --text-inverse:   #ffffff !important;
+
+    /* Borders → light */
+    --border:        #e5e0d8 !important;
+    --border-muted:  #ede8e3 !important;
+    --border-strong: #d4cdc4 !important;
+
+    /* Shadows → none for print */
+    --shadow-sm: none !important;
+    --shadow-md: none !important;
+    --shadow-lg: none !important;
+    --shadow-xl: none !important;
+  }
+
+  /* ── Step 2: Force body to clean white ── */
+  html, body {
+    background: #ffffff !important;
+    color: #111827 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* ── Step 3: Hide everything that's not the invoice ── */
   body > *,
   #root > * {
     display: none !important;
   }
 
-  /* Only show the order confirmation main + invoice */
+  /* ── Step 4: Only show the order confirmation page wrapper ── */
   #root .print-scope {
     display: block !important;
+    background: #ffffff !important;
+    color: #111827 !important;
   }
 
-  /* Invoice printable area */
+  /* ── Step 5: Hide non-printable UI elements ── */
+  .no-print {
+    display: none !important;
+  }
+
+  /* ── Step 6: Style the invoice document itself ── */
   #invoice-printable {
     display: block !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
-    padding: 20mm 15mm !important;
+    padding: 15mm 12mm !important;
     border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
-    color: #000 !important;
-    background: #fff !important;
+    background: #ffffff !important;
+    color: #111827 !important;
     font-size: 11pt !important;
     page-break-inside: avoid;
   }
 
-  /* Hide action buttons inside the invoice area */
-  .no-print {
-    display: none !important;
+  /* Force all child elements to transparent background so parent white shows through */
+  #invoice-printable * {
+    background-color: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
   }
 
-  /* Ensure table rows don't break across pages */
+  /* Re-apply selective backgrounds */
+  #invoice-printable thead tr {
+    background-color: #fdf2f8 !important;
+  }
+  #invoice-printable .inv-total-row {
+    background-color: #fdf2f8 !important;
+  }
+
+  /* Re-apply brand accent colors */
+  #invoice-printable .inv-rose  { color: #be185d !important; }
+  #invoice-printable .inv-gray  { color: #6b7280 !important; }
+  #invoice-printable .inv-light-gray { color: #9ca3af !important; }
+  #invoice-printable .inv-green { color: #059669 !important; }
+
+  /* ── Ensure table rows don't break across pages ── */
   tr {
     page-break-inside: avoid;
   }
 
-  /* Page setup */
-  @page {
-    size: A4 portrait;
-    margin: 10mm;
-  }
-
-  /* Ensure colors print */
+  /* ── Ensure colors print correctly ── */
   * {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+
+  /* ── Page setup ── */
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
   }
 }

@@ -65,23 +65,40 @@ export function useFlashSaleProducts() {
       }
       
       const now = new Date()
-      const endAt = flashSale.endAt?.toDate()
+      const startAt = flashSale.startAt?.toDate?.() ?? null
+      const endAt = flashSale.endAt?.toDate?.() ?? null
+
+      // Check end time
       if (endAt && now > endAt) {
         return { flashSale: null, products: [] }
       }
 
+      // Check start time — sale hasn't started yet
+      if (startAt && now < startAt) {
+        return { flashSale: null, products: [] }
+      }
+
       const allProducts = await getAllActiveProductsLite()
-      const saleItems = flashSale.products || []
+      // Guard against missing/malformed products array in Firestore doc
+      const saleItems: any[] = Array.isArray(flashSale.products) ? flashSale.products : []
       
-      const products = saleItems.map((saleItem: any) => {
-        const product = allProducts.find(p => p.id === saleItem.productId)
-        if (!product) return null
-        return {
-          ...product,
-          flashSaleId: flashSale.id,
-          flashSalePrice: saleItem.flashPrice
-        }
-      }).filter(Boolean)
+      if (saleItems.length === 0) {
+        return { flashSale, products: [] }
+      }
+
+      const products = saleItems
+        .map((saleItem: any) => {
+          if (!saleItem?.productId) return null
+          const product = allProducts.find(p => p.id === saleItem.productId)
+          if (!product) return null
+          return {
+            ...product,
+            flashSaleId: flashSale.id,
+            // Prefer flashPrice field; fall back to flashSalePrice for older records
+            flashSalePrice: saleItem.flashPrice ?? saleItem.flashSalePrice ?? null,
+          }
+        })
+        .filter(Boolean)
 
       return { flashSale, products }
     },
