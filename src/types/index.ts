@@ -205,6 +205,21 @@ export interface FlashSale {
 }
 
 // ────────────────────────────────────────────────────────
+// ANNOUNCEMENT / PROMO STRIP
+// ────────────────────────────────────────────────────────
+export type AnnouncementIcon = 'truck' | 'tag' | 'phone' | 'star' | 'gift' | 'zap' | 'megaphone' | 'heart'
+
+export interface Announcement {
+  id: string
+  text: string
+  icon: AnnouncementIcon
+  active: boolean
+  order: number
+  createdAt: Timestamp
+  updatedAt: Timestamp
+}
+
+// ────────────────────────────────────────────────────────
 // ADMIN / RBAC
 // ────────────────────────────────────────────────────────
 export type AdminRole = 'super_admin' | 'moderator'

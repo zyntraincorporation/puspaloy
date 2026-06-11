@@ -102,6 +102,14 @@ service cloud.firestore {
       allow write: if isActiveAdmin() && hasPermission('manageFlashSales');
     }
 
+    // ─── Announcements (Promo Strip) ──────────────────────
+    match /announcements/{announcementId} {
+      // Public reads — frontend promo strip needs this
+      allow read: if true;
+      // Admins with content permission can manage announcements
+      allow write: if isActiveAdmin() && hasPermission('manageHomepageContent');
+    }
+
     // ─── Admins / RBAC ────────────────────────────────────────
     match /admins/{adminId} {
       // Admins can read their own doc; super admin reads all

@@ -1,17 +1,39 @@
 // src/components/home/PromoStrip.tsx
-// Scrolling promo announcement banner at very top
+// Scrolling announcement banner — fully database-driven (no hardcoded text).
+// Falls back to default announcements on first run (auto-seeded).
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Truck, Tag, Phone } from 'lucide-react'
+import { Truck, Tag, Phone, Star, Gift, Zap, Megaphone, Heart } from 'lucide-react'
+import { useActiveAnnouncements } from '@/hooks/useAnnouncements'
+import { seedDefaultAnnouncements } from '@/firebase/announcements'
+import type { AnnouncementIcon } from '@/types'
 
-const PROMOS = [
-  { icon: Truck, text: 'Free delivery on orders above ৳1,500' },
-  { icon: Tag, text: 'Use code WELCOME10 for 10% off your first order' },
-  { icon: Phone, text: 'Cash on Delivery available across Bangladesh' },
-  { icon: Truck, text: 'Fast delivery to all 64 districts' },
-  { icon: Tag, text: 'New arrivals every week — stay tuned!' },
-]
+const ICON_MAP: Record<AnnouncementIcon, React.ComponentType<{ size: number; className?: string }>> = {
+  truck: Truck,
+  tag: Tag,
+  phone: Phone,
+  star: Star,
+  gift: Gift,
+  zap: Zap,
+  megaphone: Megaphone,
+  heart: Heart,
+}
 
 export default function PromoStrip() {
+  const { data: announcements = [] } = useActiveAnnouncements()
+
+  // Seed default announcements if collection is empty (runs once silently)
+  useEffect(() => {
+    seedDefaultAnnouncements().catch(() => {
+      // Silently ignore — user may not have write permissions or may be offline
+    })
+  }, [])
+
+  if (announcements.length === 0) return null
+
+  // Duplicate items for seamless infinite scroll
+  const doubled = [...announcements, ...announcements]
+
   return (
     <div
       className="overflow-hidden py-2 z-40 relative"
@@ -19,16 +41,15 @@ export default function PromoStrip() {
     >
       <motion.div
         animate={{ x: ['0%', '-50%'] }}
-        transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
+        transition={{ duration: Math.max(20, announcements.length * 5), repeat: Infinity, ease: 'linear' }}
         className="flex items-center whitespace-nowrap"
       >
-        {/* Duplicate for seamless loop */}
-        {[...PROMOS, ...PROMOS].map((promo, i) => {
-          const Icon = promo.icon
+        {doubled.map((ann, i) => {
+          const Icon = ICON_MAP[ann.icon] ?? Megaphone
           return (
-            <span key={i} className="inline-flex items-center gap-1.5 mx-8 font-sans text-xs text-white/70">
+            <span key={`${ann.id}-${i}`} className="inline-flex items-center gap-1.5 mx-8 font-sans text-xs text-white/70">
               <Icon size={11} className="text-[var(--color-gold)] shrink-0" />
-              {promo.text}
+              {ann.text}
               <span className="ml-8 text-[var(--color-gold)]">•</span>
             </span>
           )

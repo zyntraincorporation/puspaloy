@@ -6,7 +6,7 @@ import { Sparkles, Footprints, Gift, Gem, Package } from 'lucide-react'
 import { staggerContainer, fadeInUp } from '@/lib/animations'
 import SectionHeader from './SectionHeader'
 
-import { useActiveCategories } from '@/hooks/useCategories'
+import { useNonEmptyActiveCategories } from '@/hooks/useCategories'
 
 const ICONS = [Sparkles, Footprints, Gift, Gem, Package]
 const GRADIENTS = [
@@ -25,7 +25,7 @@ const BGS = [
 ]
 
 export default function CategoryGrid() {
-  const { data: categories = [] } = useActiveCategories()
+  const { data: categories = [] } = useNonEmptyActiveCategories()
 
   return (
     <section className="py-14 md:py-20" style={{ backgroundColor: 'var(--bg-muted)' }}>

@@ -9,6 +9,7 @@ import {
   subscribeToActiveCategories,
   subscribeToAllCategories,
 } from '@/firebase/categories'
+import type { Category } from '@/types'
 
 // ── For frontend navigation (only active, non-archived categories) ──────────
 export function useActiveCategories() {
@@ -29,6 +30,14 @@ export function useActiveCategories() {
   })
 }
 
+// ── For frontend navigation — only categories that contain at least 1 product ─
+// Derives from the already-cached active list (no extra Firestore query).
+export function useNonEmptyActiveCategories() {
+  const { data: categories = [], ...rest } = useActiveCategories()
+  const nonEmpty = categories.filter((c: Category) => (c.productCount ?? 0) > 0)
+  return { ...rest, data: nonEmpty }
+}
+
 // ── For Admin panel (all categories including archived) ─────────────────────
 export function useAllCategories() {
   const qc = useQueryClient()
@@ -47,3 +56,4 @@ export function useAllCategories() {
     staleTime: Infinity, // Managed via real-time listener above
   })
 }
+

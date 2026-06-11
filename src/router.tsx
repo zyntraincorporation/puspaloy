@@ -29,6 +29,7 @@ const AdminOrders = lazy(() => import('@/admin/pages/Orders'))
 const AdminReviews = lazy(() => import('@/admin/pages/Reviews'))
 const AdminCoupons = lazy(() => import('@/admin/pages/Coupons'))
 const AdminFlashSales = lazy(() => import('@/admin/pages/FlashSales'))
+const AdminAnnouncements = lazy(() => import('@/admin/pages/Announcements'))
 const AdminContent = lazy(() => import('@/admin/pages/Content'))
 const AdminModerators = lazy(() => import('@/admin/pages/Moderators'))
 const AdminSettings = lazy(() => import('@/admin/pages/Settings'))
@@ -132,6 +133,15 @@ export default function AppRouter() {
             element={
               <PermissionRoute permission="manageFlashSales">
                 <AdminFlashSales />
+              </PermissionRoute>
+            }
+          />
+
+          <Route
+            path="announcements"
+            element={
+              <PermissionRoute permission="manageHomepageContent">
+                <AdminAnnouncements />
               </PermissionRoute>
             }
           />

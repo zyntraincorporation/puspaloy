@@ -1,11 +1,44 @@
 // src/components/layout/Footer.tsx
+// UPDATED:
+//  - Uses useNonEmptyActiveCategories → empty categories never appear in Shop links
+//  - Pulls phone, email, address, social links from Firestore settings/general
+//  - Falls back gracefully to hardcoded values if settings haven't loaded yet
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Share2, MessageCircle, Mail, Phone, MapPin, Heart } from 'lucide-react'
+import { MessageCircle, Mail, Phone, MapPin, Heart } from 'lucide-react'
 import { fadeInUp, staggerContainer } from '@/lib/animations'
 import { useState } from 'react'
+import { useNonEmptyActiveCategories } from '@/hooks/useCategories'
+import { useGeneralSettings } from '@/hooks/useSettings'
 
-import { useActiveCategories } from '@/hooks/useCategories'
+// ── Brand icon SVGs (lucide-react excludes trademarked brand icons) ──────────
+function FacebookIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+    </svg>
+  )
+}
+
+function InstagramIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+// ── Hardcoded fallbacks (used until Firestore settings load) ─────────────────
+const FALLBACK = {
+  phone: '+8809638504054',
+  email: 'hello@puspaloygiftzone.shop',
+  address: 'Dhaka, Bangladesh',
+  facebook: '#',
+  instagram: '#',
+  messenger: '#',
+}
 
 const INFO_LINKS = [
   { label: 'About PUSPALOY', href: '/#brand-story' },
@@ -17,7 +50,19 @@ const INFO_LINKS = [
 export default function Footer() {
   const [email, setEmail] = useState('')
   const [subscribed, setSubscribed] = useState(false)
-  const { data: categories = [] } = useActiveCategories()
+
+  const { data: categories = [] } = useNonEmptyActiveCategories()
+  const { data: settings } = useGeneralSettings()
+
+  // Resolved values — prefer Firestore, fall back to hardcoded
+  const phone    = settings?.phone         || FALLBACK.phone
+  const emailVal = settings?.email         || FALLBACK.email
+  const address  = settings?.address       || FALLBACK.address
+  const facebook = settings?.socialLinks?.facebook  || FALLBACK.facebook
+  const instagram = settings?.socialLinks?.instagram || FALLBACK.instagram
+  const messenger = settings?.messengerPageId
+    ? `https://m.me/${settings.messengerPageId}`
+    : FALLBACK.messenger
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,19 +98,54 @@ export default function Footer() {
               </span>
             </Link>
             <p className="font-sans text-sm text-[var(--text-secondary)] leading-relaxed mb-5">
-              Luxury beauty, fashion, and gifting brand from the heart of Bangladesh. 
+              Luxury beauty, fashion, and gifting brand from the heart of Bangladesh.
               Every product is curated with elegance and love.
             </p>
+
+            {/* Social links — dynamic from Firestore */}
             <div className="flex items-center gap-3">
+              {facebook && facebook !== '#' ? (
+                <a
+                  href={facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:border-[var(--color-rose)] hover:text-[var(--color-rose)] hover:bg-rose-50 transition-all duration-200"
+                  aria-label="Facebook"
+                >
+                  <FacebookIcon size={15} />
+                </a>
+              ) : (
+                <a
+                  href="#"
+                  className="w-9 h-9 rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:border-[var(--color-rose)] hover:text-[var(--color-rose)] hover:bg-rose-50 transition-all duration-200"
+                  aria-label="Facebook"
+                >
+                  <FacebookIcon size={15} />
+                </a>
+              )}
+              {instagram && instagram !== '#' ? (
+                <a
+                  href={instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:border-[var(--color-rose)] hover:text-[var(--color-rose)] hover:bg-rose-50 transition-all duration-200"
+                  aria-label="Instagram"
+                >
+                  <InstagramIcon size={15} />
+                </a>
+              ) : (
+                <a
+                  href="#"
+                  className="w-9 h-9 rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:border-[var(--color-rose)] hover:text-[var(--color-rose)] hover:bg-rose-50 transition-all duration-200"
+                  aria-label="Instagram"
+                >
+                  <InstagramIcon size={15} />
+                </a>
+              )}
               <a
-                href="#"
-                className="w-9 h-9 rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:border-[var(--color-rose)] hover:text-[var(--color-rose)] hover:bg-rose-50 transition-all duration-200"
-                aria-label="Facebook"
-              >
-                <Share2 size={15} />
-              </a>
-              <a
-                href="#"
+                href={messenger}
+                target={messenger !== '#' ? '_blank' : undefined}
+                rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:border-[var(--color-rose)] hover:text-[var(--color-rose)] hover:bg-rose-50 transition-all duration-200"
                 aria-label="Messenger"
               >
@@ -74,13 +154,13 @@ export default function Footer() {
             </div>
           </motion.div>
 
-          {/* Quick links */}
+          {/* Shop links — non-empty categories only */}
           <motion.div variants={fadeInUp}>
             <h3 className="font-sans font-semibold text-sm tracking-widest uppercase text-[var(--color-gold)] mb-4">
               Shop
             </h3>
             <ul className="space-y-3">
-              {categories.slice(0, 5).map((cat) => (
+              {categories.slice(0, 6).map((cat) => (
                 <li key={cat.id}>
                   <Link
                     to={`/category/${cat.slug}`}
@@ -90,10 +170,20 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+              {categories.length === 0 && (
+                <li>
+                  <Link
+                    to="/catalog"
+                    className="font-sans text-sm text-[var(--text-secondary)] hover:text-[var(--color-rose)] transition-colors"
+                  >
+                    All Products
+                  </Link>
+                </li>
+              )}
             </ul>
           </motion.div>
 
-          {/* Info links */}
+          {/* Info links + contact */}
           <motion.div variants={fadeInUp}>
             <h3 className="font-sans font-semibold text-sm tracking-widest uppercase text-[var(--color-gold)] mb-4">
               Information
@@ -110,18 +200,26 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
+
+            {/* Contact info — dynamic from Firestore */}
             <div className="mt-5 space-y-2">
-              <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+              <a
+                href={`tel:${phone}`}
+                className="flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--color-rose)] transition-colors"
+              >
                 <Phone size={13} className="text-[var(--color-rose)] shrink-0" />
-                <span>+8809638504054</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+                <span>{phone}</span>
+              </a>
+              <a
+                href={`mailto:${emailVal}`}
+                className="flex items-center gap-2 text-sm text-[var(--text-secondary)] hover:text-[var(--color-rose)] transition-colors"
+              >
                 <Mail size={13} className="text-[var(--color-rose)] shrink-0" />
-                <span>hello@puspaloygiftzone.shop</span>
-              </div>
+                <span>{emailVal}</span>
+              </a>
               <div className="flex items-start gap-2 text-sm text-[var(--text-secondary)]">
                 <MapPin size={13} className="text-[var(--color-rose)] shrink-0 mt-0.5" />
-                <span>Dhaka, Bangladesh</span>
+                <span>{address}</span>
               </div>
             </div>
           </motion.div>

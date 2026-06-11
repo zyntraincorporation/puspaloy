@@ -4,6 +4,7 @@ import SEO from '@/components/shared/SEO'
 import { motion } from 'framer-motion'
 import { pageTransition } from '@/lib/animations'
 import { useHomepageProducts, useFlashSaleProducts } from '@/hooks/useProducts'
+import { useNonEmptyActiveCategories } from '@/hooks/useCategories'
 import type { Product } from '@/types'
 
 // Layout & Section components
@@ -19,6 +20,14 @@ import NewsletterSection from '@/components/home/NewsletterSection'
 export default function HomePage() {
   const { data: homepageData, isLoading: homepageLoading } = useHomepageProducts()
   const { data: flashData, isLoading: flashLoading } = useFlashSaleProducts()
+  const { data: categories = [] } = useNonEmptyActiveCategories()
+
+  // Dynamic slug helper — returns /category/<slug> if it exists, /catalog otherwise
+  const catHref = (slug: string) =>
+    categories.some(c => c.slug === slug) ? `/category/${slug}` : '/catalog'
+
+  // Best-guess: pick first, second, third category slugs for the product sections
+  const [firstCat, secondCat, thirdCat] = categories.map(c => c.slug)
 
   const content = homepageData?.content
   const featured = homepageData?.featured ?? []
@@ -69,7 +78,7 @@ export default function HomePage() {
           subtitle="Fresh additions to our luxury collection — be the first to discover them"
           products={newArrivals as Product[]}
           isLoading={homepageLoading}
-          viewAllHref="/category/cosmetics"
+          viewAllHref={firstCat ? catHref(firstCat) : '/catalog'}
           bgColor="muted"
           maxItems={8}
         />
@@ -81,7 +90,7 @@ export default function HomePage() {
           subtitle="The products our customers love most — bestselling for good reason"
           products={bestSellers as Product[]}
           isLoading={homepageLoading}
-          viewAllHref="/category/gifts"
+          viewAllHref={secondCat ? catHref(secondCat) : '/catalog'}
           bgColor="primary"
           maxItems={8}
         />
@@ -93,7 +102,7 @@ export default function HomePage() {
           subtitle="The most talked-about products this season"
           products={trending as Product[]}
           isLoading={homepageLoading}
-          viewAllHref="/category/accessories"
+          viewAllHref={thirdCat ? catHref(thirdCat) : '/catalog'}
           bgColor="muted"
           maxItems={4}
         />

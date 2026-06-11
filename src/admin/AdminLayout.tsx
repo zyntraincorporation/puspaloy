@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { signOut } from '@/firebase/auth'
 import {
   LayoutDashboard, Package, Tag, ShoppingCart, Star,
-  Ticket, Zap, Image, Users, Settings, LogOut, Menu, X, AlertOctagon, Copy, Sun, Moon
+  Ticket, Zap, Image, Users, Settings, LogOut, Menu, X, AlertOctagon, Copy, Sun, Moon, Megaphone
 } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/utils/cn'
@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { icon: Star, label: 'Reviews', href: '/admin/reviews', permission: 'manageReviews' },
   { icon: Ticket, label: 'Coupons', href: '/admin/coupons', permission: 'manageCoupons' },
   { icon: Zap, label: 'Flash Sales', href: '/admin/flash-sales', permission: 'manageFlashSales' },
+  { icon: Megaphone, label: 'Announcements', href: '/admin/announcements', permission: 'manageHomepageContent' },
   { icon: Image, label: 'Content', href: '/admin/content', permission: 'manageHomepageContent' },
   { icon: Users, label: 'Moderators', href: '/admin/moderators', permission: 'manageModerators' },
   { icon: Settings, label: 'Settings', href: '/admin/settings', permission: 'manageSettings' },

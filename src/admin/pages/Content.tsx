@@ -243,13 +243,15 @@ export default function Content() {
   }
 
   const { mutate: saveHomepage, isPending: savingHp } = useMutation({
-    mutationFn: () => updateHomepageContent(hp),
+    // Save the FULLY MERGED object (server defaults + local edits) — not just the diff
+    mutationFn: () => updateHomepageContent(hpData),
     onSuccess: () => { toast('Homepage content saved!', 'success'); qc.invalidateQueries({ queryKey: ['content', 'homepage'] }) },
     onError: () => toast('Failed to save', 'error'),
   })
 
   const { mutate: saveBrandStory, isPending: savingBs } = useMutation({
-    mutationFn: () => updateBrandStory(bs),
+    // Save the FULLY MERGED object — not just the diff
+    mutationFn: () => updateBrandStory(bsData),
     onSuccess: () => { toast('Brand story saved!', 'success'); qc.invalidateQueries({ queryKey: ['content', 'brandstory'] }) },
     onError: () => toast('Failed to save', 'error'),
   })

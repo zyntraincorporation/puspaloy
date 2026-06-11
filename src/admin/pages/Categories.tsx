@@ -12,7 +12,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Tag, Plus, Edit2, Trash2, X, Loader2, GripVertical,
   ChevronDown, ChevronUp, ToggleLeft, ToggleRight, RotateCcw,
-  ImagePlus, RefreshCw, Package, Eye, EyeOff, MoveRight,
+  ImagePlus, RefreshCw, Package, Eye, EyeOff, MoveRight, Search, UserPlus, Check,
 } from 'lucide-react'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '@/firebase/config'
@@ -30,8 +30,8 @@ import {
   ensureUncategorizedExists,
 } from '@/firebase/categories'
 import { useAllCategories } from '@/hooks/useCategories'
-import { updateProduct } from '@/firebase/products'
-import type { Product } from '@/types'
+import { updateProduct, getAllActiveProductsLite } from '@/firebase/products'
+import type { Product, ProductLite } from '@/types'
 
 // ── Category Form Type ─────────────────────────────────────────────────────
 type CatForm = {
@@ -324,6 +324,279 @@ function CategoryModal({
   )
 }
 
+// ── Product Assignment Modal ───────────────────────────────────────────────
+function ProductAssignmentModal({
+  category,
+  onClose,
+}: {
+  category: Category
+  onClose: () => void
+}) {
+  const { toast } = useToast()
+  const qc = useQueryClient()
+  const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [saving, setSaving] = useState(false)
+
+  const { data: allProducts = [], isLoading } = useQuery({
+    queryKey: ['products-lite-all'],
+    queryFn: getAllActiveProductsLite,
+    staleTime: 60_000,
+  })
+
+  // Products already in this category (primary or additional)
+  const alreadyInCat = (p: ProductLite) =>
+    (p.categorySlugs ?? []).includes(category.slug)
+
+  // Filtered & sorted list: non-assigned first, then assigned
+  const filtered = allProducts.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    p.slug.toLowerCase().includes(search.toLowerCase())
+  )
+  const sortedFiltered = [
+    ...filtered.filter(p => !alreadyInCat(p)),
+    ...filtered.filter(p => alreadyInCat(p)),
+  ]
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const selectAll = () => {
+    const nonAssigned = filtered.filter(p => !alreadyInCat(p)).map(p => p.id)
+    setSelected(new Set(nonAssigned))
+  }
+
+  const handleAssign = async () => {
+    if (selected.size === 0) return
+    setSaving(true)
+    let successCount = 0
+    let errorCount = 0
+
+    for (const productId of selected) {
+      const product = allProducts.find(p => p.id === productId)
+      if (!product || alreadyInCat(product)) continue
+
+      try {
+        const existingSlugs: string[] = product.categorySlugs ?? [product.category]
+        const newSlugs = Array.from(new Set([...existingSlugs, category.slug]))
+        const newAdditional = Array.from(
+          new Set([...(product.additionalCategories ?? []), category.slug])
+        ).filter(s => s !== product.category)
+
+        await updateProduct(productId, {
+          additionalCategories: newAdditional,
+          categorySlugs: newSlugs,
+        })
+        successCount++
+      } catch {
+        errorCount++
+      }
+    }
+
+    setSaving(false)
+    if (successCount > 0) {
+      toast(`${successCount} product${successCount !== 1 ? 's' : ''} assigned to "${category.name}"`, 'success')
+      qc.invalidateQueries({ queryKey: ['category-products', category.slug] })
+      qc.invalidateQueries({ queryKey: ['category-product-count', category.slug] })
+      qc.invalidateQueries({ queryKey: ['products-lite-all'] })
+    }
+    if (errorCount > 0) toast(`${errorCount} failed to assign`, 'error')
+    setSelected(new Set())
+    if (errorCount === 0) onClose()
+  }
+
+  const handleRemove = async (product: ProductLite) => {
+    if (!alreadyInCat(product)) return
+    if (product.category === category.slug) {
+      toast('Cannot remove primary category. Use "Move to…" instead.', 'error')
+      return
+    }
+    try {
+      const newAdditional = (product.additionalCategories ?? []).filter(
+        s => s !== category.slug
+      )
+      const newSlugs = (product.categorySlugs ?? []).filter(s => s !== category.slug)
+      await updateProduct(product.id, {
+        additionalCategories: newAdditional,
+        categorySlugs: newSlugs,
+      })
+      toast(`Removed from "${category.name}"`, 'success')
+      qc.invalidateQueries({ queryKey: ['category-products', category.slug] })
+      qc.invalidateQueries({ queryKey: ['category-product-count', category.slug] })
+      qc.invalidateQueries({ queryKey: ['products-lite-all'] })
+    } catch {
+      toast('Failed to remove product', 'error')
+    }
+  }
+
+  const inCatCount = allProducts.filter(alreadyInCat).length
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        className="bg-[var(--bg-surface)] rounded-luxury-xl border border-[var(--border)] w-full max-w-2xl shadow-luxury-lg flex flex-col"
+        style={{ maxHeight: '90vh' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-[var(--border)] shrink-0">
+          <div>
+            <h2 className="font-serif text-xl font-bold text-[var(--text-primary)]">
+              Assign Products to "{category.name}"
+            </h2>
+            <p className="font-sans text-xs text-[var(--text-muted)] mt-0.5">
+              {inCatCount} already assigned · {allProducts.length} total products
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--bg-muted)] transition-colors shrink-0"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Search + select all */}
+        <div className="px-5 py-3 border-b border-[var(--border)] shrink-0 space-y-2">
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by name or SKU…"
+              className="input-luxury pl-9 text-sm"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="font-sans text-xs text-[var(--text-muted)]">
+              {selected.size} selected
+            </span>
+            <button
+              onClick={selectAll}
+              className="font-sans text-xs text-[var(--color-rose)] hover:underline"
+            >
+              Select all unassigned ({filtered.filter(p => !alreadyInCat(p)).length})
+            </button>
+          </div>
+        </div>
+
+        {/* Product list */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
+          {isLoading ? (
+            [...Array(6)].map((_, i) => (
+              <div key={i} className="h-14 skeleton rounded-luxury-lg" />
+            ))
+          ) : sortedFiltered.length === 0 ? (
+            <p className="text-center py-10 font-sans text-sm text-[var(--text-muted)]">
+              No products found
+            </p>
+          ) : (
+            sortedFiltered.map(p => {
+              const inCat = alreadyInCat(p)
+              const isSelected = selected.has(p.id)
+
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => !inCat && toggleSelect(p.id)}
+                  className={cn(
+                    'flex items-center gap-3 p-2.5 rounded-luxury border transition-all',
+                    inCat
+                      ? 'border-emerald-200 bg-emerald-50/50 cursor-default'
+                      : isSelected
+                        ? 'border-[var(--color-rose)] bg-rose-50/50 cursor-pointer'
+                        : 'border-[var(--border)] hover:border-[var(--color-rose)]/40 cursor-pointer'
+                  )}
+                >
+                  {/* Checkbox */}
+                  <div className={cn(
+                    'w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all',
+                    inCat
+                      ? 'bg-emerald-500 border-emerald-500'
+                      : isSelected
+                        ? 'bg-[var(--color-rose)] border-[var(--color-rose)]'
+                        : 'border-[var(--border)]'
+                  )}>
+                    {(inCat || isSelected) && <Check size={11} className="text-white" strokeWidth={3} />}
+                  </div>
+
+                  {/* Image */}
+                  <img
+                    src={p.featuredImage || ''}
+                    alt={p.name}
+                    className="w-10 h-10 rounded object-cover shrink-0 bg-[var(--bg-muted)]"
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-sans text-sm font-medium text-[var(--text-primary)] truncate">{p.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="font-mono text-[10px] text-[var(--text-muted)]">{p.slug}</span>
+                      <span className="font-sans text-[10px] text-[var(--text-muted)]">
+                        Primary: {p.category}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Status badge / remove button */}
+                  {inCat ? (
+                    <div className="flex items-center gap-2 shrink-0">
+                      {p.category === category.slug ? (
+                        <span className="font-sans text-[10px] font-bold bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full uppercase">
+                          Primary
+                        </span>
+                      ) : (
+                        <>
+                          <span className="font-sans text-[10px] font-bold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full uppercase">
+                            Assigned
+                          </span>
+                          <button
+                            onClick={e => { e.stopPropagation(); handleRemove(p) }}
+                            className="text-[var(--text-muted)] hover:text-red-500 transition-colors p-1"
+                            title="Remove from this category"
+                          >
+                            <X size={13} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-[var(--border)] flex items-center justify-between gap-3 shrink-0">
+          <p className="font-sans text-xs text-[var(--text-muted)]">
+            Assigning adds products to this category <em>without</em> changing their primary category.
+          </p>
+          <div className="flex gap-2 shrink-0">
+            <button onClick={onClose} className="btn-ghost px-4">Cancel</button>
+            <button
+              onClick={handleAssign}
+              disabled={saving || selected.size === 0}
+              className="btn-primary px-5 gap-2 disabled:opacity-50"
+            >
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
+              Assign {selected.size > 0 ? `(${selected.size})` : ''}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
 // ── Category Products List ─────────────────────────────────────────────────
 // FIXED: queries categorySlugs (array-contains) to catch products in additional categories too
 function CategoryProductsList({
@@ -438,6 +711,7 @@ function CategoryRow({
   onToggleActive: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [assignOpen, setAssignOpen] = useState(false)
 
   // Get live product count for this category
   const { data: liveCount } = useQuery({
@@ -506,6 +780,17 @@ function CategoryRow({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* Assign Products button */}
+          {!category.archived && (
+            <button
+              onClick={() => setAssignOpen(true)}
+              className="p-1.5 rounded-luxury text-[var(--text-muted)] hover:text-[var(--color-rose)] hover:bg-rose-50 transition-colors"
+              title="Assign products to this category"
+            >
+              <UserPlus size={15} />
+            </button>
+          )}
+
           <button
             onClick={() => setExpanded(!expanded)}
             className="p-1.5 rounded-luxury text-[var(--text-muted)] hover:bg-[var(--bg-muted)] transition-colors flex items-center gap-1 mr-2"
@@ -559,6 +844,16 @@ function CategoryRow({
           >
             <CategoryProductsList slug={category.slug} categories={allCategories} />
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Product Assignment Modal */}
+      <AnimatePresence>
+        {assignOpen && (
+          <ProductAssignmentModal
+            category={category}
+            onClose={() => setAssignOpen(false)}
+          />
         )}
       </AnimatePresence>
     </motion.div>
