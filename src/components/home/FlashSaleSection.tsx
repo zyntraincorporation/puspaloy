@@ -41,6 +41,10 @@ export default function FlashSaleSection({ flashSale, products, isLoading }: Fla
   // The countdown target — fallback to 1 hour from now if endDate is somehow null
   const countdownTarget = endDate ?? new Date(Date.now() + 60 * 60 * 1000)
 
+  // Key changes when loading finishes so the motion container remounts and
+  // re-evaluates whileInView
+  const motionKey = isLoading ? 'loading' : 'loaded'
+
   return (
     // ── IMPORTANT: This section uses a forced dark background so that
     // "text-white" labels are ALWAYS visible regardless of the active theme.
@@ -87,10 +91,11 @@ export default function FlashSaleSection({ flashSale, products, isLoading }: Fla
 
       <div className="container-luxury relative z-10">
         <motion.div
+          key={motionKey}
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
+          viewport={{ once: true, amount: 0.05, margin: '-60px' }}
         >
           {/* ── Section Header ─────────────────────────── */}
           <motion.div variants={fadeInUp} className="text-center mb-10">

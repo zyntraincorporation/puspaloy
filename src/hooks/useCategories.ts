@@ -34,8 +34,7 @@ export function useActiveCategories() {
 // Derives from the already-cached active list (no extra Firestore query).
 export function useNonEmptyActiveCategories() {
   const { data: categories = [], ...rest } = useActiveCategories()
-  const nonEmpty = categories.filter((c: Category) => (c.productCount ?? 0) > 0)
-  return { ...rest, data: nonEmpty }
+  return { ...rest, data: categories }
 }
 
 // ── For Admin panel (all categories including archived) ─────────────────────

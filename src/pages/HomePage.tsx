@@ -18,9 +18,16 @@ import ReviewsCarousel from '@/components/home/ReviewsCarousel'
 import NewsletterSection from '@/components/home/NewsletterSection'
 
 export default function HomePage() {
-  const { data: homepageData, isLoading: homepageLoading } = useHomepageProducts()
+  const {
+    data: homepageData,
+    isLoading: homepageLoading,
+    isPlaceholderData,
+  } = useHomepageProducts()
   const { data: flashData, isLoading: flashLoading } = useFlashSaleProducts()
   const { data: categories = [] } = useNonEmptyActiveCategories()
+
+  // Treat placeholder data the same as loading — shows skeletons instead of blank
+  const sectionsLoading = homepageLoading || isPlaceholderData
 
   // Dynamic slug helper — returns /category/<slug> if it exists, /catalog otherwise
   const catHref = (slug: string) =>
@@ -34,6 +41,7 @@ export default function HomePage() {
   const newArrivals = homepageData?.newArrivals ?? []
   const bestSellers = homepageData?.bestSellers ?? []
   const trending = homepageData?.trending ?? []
+
 
   return (
     <>
@@ -58,7 +66,7 @@ export default function HomePage() {
           title="Featured Collection"
           subtitle="Our most-loved pieces, carefully curated for elegance and quality"
           products={featured as Product[]}
-          isLoading={homepageLoading}
+          isLoading={sectionsLoading}
           viewAllHref="/catalog"
           bgColor="primary"
           maxItems={8}
@@ -77,7 +85,7 @@ export default function HomePage() {
           title="New Arrivals"
           subtitle="Fresh additions to our luxury collection — be the first to discover them"
           products={newArrivals as Product[]}
-          isLoading={homepageLoading}
+          isLoading={sectionsLoading}
           viewAllHref={firstCat ? catHref(firstCat) : '/catalog'}
           bgColor="muted"
           maxItems={8}
@@ -89,7 +97,7 @@ export default function HomePage() {
           title="Best Sellers"
           subtitle="The products our customers love most — bestselling for good reason"
           products={bestSellers as Product[]}
-          isLoading={homepageLoading}
+          isLoading={sectionsLoading}
           viewAllHref={secondCat ? catHref(secondCat) : '/catalog'}
           bgColor="primary"
           maxItems={8}
@@ -101,7 +109,7 @@ export default function HomePage() {
           title="Trending Now"
           subtitle="The most talked-about products this season"
           products={trending as Product[]}
-          isLoading={homepageLoading}
+          isLoading={sectionsLoading}
           viewAllHref={thirdCat ? catHref(thirdCat) : '/catalog'}
           bgColor="muted"
           maxItems={4}

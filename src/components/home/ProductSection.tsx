@@ -39,6 +39,11 @@ export default function ProductSection({
       ? 'grid grid-cols-2 gap-3 sm:gap-4'
       : 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4'
 
+  // Key changes when loading finishes so the motion container remounts and
+  // re-evaluates whileInView — prevents the race where once:true fires while
+  // the section is visible but products haven't loaded yet.
+  const motionKey = isLoading ? 'loading' : 'loaded'
+
   return (
     <section
       className="py-14 md:py-20"
@@ -46,10 +51,11 @@ export default function ProductSection({
     >
       <div className="container-luxury">
         <motion.div
+          key={motionKey}
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
+          viewport={{ once: true, amount: 0.05, margin: '-60px' }}
         >
           <SectionHeader
             label={label}

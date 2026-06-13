@@ -21,6 +21,31 @@ import type { Product, ProductLite, ProductCategory } from '@/types'
 
 const PRODUCTS_COL = 'products'
 
+// Helper to safely convert different kinds of timestamps (Firestore Timestamp, serialized cache object, Date, string) to milliseconds
+export function getMillis(timestamp: any): number {
+  if (!timestamp) return 0
+  if (typeof timestamp.toMillis === 'function') {
+    return timestamp.toMillis()
+  }
+  if (typeof timestamp.toDate === 'function') {
+    return timestamp.toDate().getTime()
+  }
+  if (timestamp instanceof Date) {
+    return timestamp.getTime()
+  }
+  if (typeof timestamp === 'number') {
+    return timestamp
+  }
+  if (typeof timestamp === 'string') {
+    const parsed = Date.parse(timestamp)
+    return isNaN(parsed) ? 0 : parsed
+  }
+  if (typeof timestamp.seconds === 'number') {
+    return timestamp.seconds * 1000 + (timestamp.nanoseconds ?? 0) / 1000000
+  }
+  return 0
+}
+
 // ── Read ──────────────────────────────────────────────────
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   const q = query(
@@ -57,7 +82,7 @@ export async function getProductsByCategory(
   let products = snap.docs
     .map((d) => ({ id: d.id, ...d.data() } as Product))
     .filter((p) => p.status === 'active')
-    .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())
+    .sort((a, b) => getMillis(b.createdAt) - getMillis(a.createdAt))
 
   // Handle client-side pagination
   const startIndex = lastDoc ? products.findIndex((p) => p.id === lastDoc.id) + 1 : 0
@@ -115,7 +140,7 @@ export async function getAllActiveProductsLite(): Promise<ProductLite[]> {
   })
   
   return products
-    .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis())
+    .sort((a, b) => getMillis(b.createdAt) - getMillis(a.createdAt))
     .slice(0, 200)
 }
 

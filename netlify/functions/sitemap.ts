@@ -2,7 +2,7 @@ import type { Handler, HandlerEvent } from '@netlify/functions'
 
 export const handler: Handler = async (event: HandlerEvent) => {
   const projectId = process.env.VITE_FIREBASE_PROJECT_ID
-  const baseUrl = process.env.VITE_APP_URL || 'https://puspaloy.netlify.app'
+  const baseUrl = process.env.VITE_APP_URL || 'https://puspaloygiftzone.shop'
 
   if (!projectId || projectId === 'your_project_id') {
     return {

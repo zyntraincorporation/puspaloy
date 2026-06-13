@@ -15,28 +15,38 @@ export function useHomepageProducts() {
   return useQuery({
     queryKey: ['homepage-content'],
     queryFn: async () => {
-      const content = await getHomepageContent()
-      if (!content) return null
+      // Run both fetches in PARALLEL — cuts load time in half
+      const [content, allActive] = await Promise.all([
+        getHomepageContent(),
+        getAllActiveProductsLite(),
+      ])
 
-      const allActive = await getAllActiveProductsLite()
-      
-      const featured = (content.featuredProductIds ?? [])
-        .map(id => allActive.find(p => p.id === id))
-        .filter(Boolean)
-      
-      const newArrivals = (content.newArrivalProductIds ?? [])
-        .map(id => allActive.find(p => p.id === id))
-        .filter(Boolean)
-        
-      const bestSellers = (content.bestSellerProductIds ?? [])
-        .map(id => allActive.find(p => p.id === id))
-        .filter(Boolean)
-        
-      const trending = (content.trendingProductIds ?? [])
-        .map(id => allActive.find(p => p.id === id))
-        .filter(Boolean)
+      // Helper: resolve IDs → products, fall back to top N from catalog
+      const resolve = (ids: string[], fallbackSlice: number, fallbackOffset = 0) => {
+        if (ids.length > 0) {
+          const resolved = ids
+            .map(id => allActive.find(p => p.id === id))
+            .filter(Boolean)
+          if (resolved.length > 0) return resolved
+        }
+        // No curated IDs (or none matched) → use catalog products as fallback
+        return allActive.slice(fallbackOffset, fallbackOffset + fallbackSlice)
+      }
 
-      return { content, featured, newArrivals, bestSellers, trending }
+      const ids = {
+        featured:    (content?.featuredProductIds     ?? []),
+        newArrivals: (content?.newArrivalProductIds   ?? []),
+        bestSellers: (content?.bestSellerProductIds   ?? []),
+        trending:    (content?.trendingProductIds     ?? []),
+      }
+
+      return {
+        content,
+        featured:    resolve(ids.featured,    8, 0),
+        newArrivals: resolve(ids.newArrivals, 8, 4),
+        bestSellers: resolve(ids.bestSellers, 8, 8),
+        trending:    resolve(ids.trending,    4, 12),
+      }
     },
     staleTime: 5 * 60 * 1000,
   })

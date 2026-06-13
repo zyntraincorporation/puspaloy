@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore'
 import { db } from './config'
 import type { Review, ReviewStatus } from '@/types'
+import { getMillis } from './products'
 
 const REVIEWS_COL = 'reviews'
 
@@ -40,7 +41,7 @@ export async function getApprovedReviews(productId: string): Promise<Review[]> {
   let reviews = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Review))
   
   reviews = reviews.filter(r => r.status === 'approved')
-  reviews.sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0))
+  reviews.sort((a, b) => getMillis(b.createdAt) - getMillis(a.createdAt))
   
   return reviews.slice(0, 20)
 }
@@ -53,7 +54,7 @@ export async function getPendingReviews(): Promise<Review[]> {
   const snap = await getDocs(q)
   const reviews = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Review))
   
-  return reviews.sort((a, b) => (a.createdAt?.toMillis() ?? 0) - (b.createdAt?.toMillis() ?? 0))
+  return reviews.sort((a, b) => getMillis(a.createdAt) - getMillis(b.createdAt))
 }
 
 export async function getAllReviewsAdmin(): Promise<Review[]> {

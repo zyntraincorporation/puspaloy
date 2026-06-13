@@ -25,16 +25,21 @@ const BGS = [
 ]
 
 export default function CategoryGrid() {
-  const { data: categories = [] } = useNonEmptyActiveCategories()
+  const { data: categories = [], isLoading } = useNonEmptyActiveCategories()
+
+  // Key changes once categories load — prevents whileInView from firing on an
+  // empty list and never re-triggering when async data arrives.
+  const motionKey = isLoading || categories.length === 0 ? 'loading' : 'loaded'
 
   return (
     <section className="py-14 md:py-20" style={{ backgroundColor: 'var(--bg-muted)' }}>
       <div className="container-luxury">
         <motion.div
+          key={motionKey}
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
+          viewport={{ once: true, amount: 0.05, margin: '-60px' }}
         >
           <SectionHeader
             label="Shop By Category"
