@@ -34,6 +34,18 @@ export interface Product {
   youtubeVideoId: string | null
   description: string
   htmlDescription: string
+  // ── SEO fields ─────────────────────────────────
+  seoTitle: string | null
+  seoDescription: string | null
+  seoKeywords: string | null
+  seoTags: string[]
+  ogTitle: string | null
+  ogDescription: string | null
+  ogImage: string | null
+  canonicalUrl: string | null
+  // ── Product Badges ───────────────────────────────
+  badges?: string[]
+  // ───────────────────────────────────────────────
   flashSaleId: string | null
   flashSalePrice: number | null
   avgRating: number
@@ -70,6 +82,8 @@ export interface ProductLite {
   newArrival: boolean
   status: ProductStatus
   stock: number
+  seoTitle: string | null
+  seoDescription: string | null
 }
 
 // ────────────────────────────────────────────────────────
