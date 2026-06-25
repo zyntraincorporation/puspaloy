@@ -190,23 +190,41 @@ Every field must be present even if information is limited.`
             content: `Generate SEO for this product:\n\n${context}`,
           },
         ],
-        max_tokens: 1500,
+        max_tokens: 2500,
         temperature: 0.5,
         response_format: { type: 'json_object' },
       }),
     })
 
     const data = await response.json()
+
+    // Log OpenRouter errors so they're visible in Netlify function logs
+    if (!response.ok || data.error) {
+      console.error('[generate-seo] OpenRouter error:', JSON.stringify(data))
+      return {
+        statusCode: 502,
+        headers: CORS,
+        body: JSON.stringify({ error: data.error?.message || 'OpenRouter API error', detail: data }),
+      }
+    }
+
     const content = data.choices?.[0]?.message?.content ?? '{}'
 
-    // Parse and validate JSON
-    let seoData: Record<string, unknown>
+    // Parse and validate JSON — double-safe parse
+    let seoData: Record<string, unknown> = {}
     try {
       seoData = JSON.parse(content)
     } catch {
-      // Fallback: attempt to extract JSON from content
-      const jsonMatch = content.match(/\{[\s\S]*\}/)
-      seoData = jsonMatch ? JSON.parse(jsonMatch[0]) : {}
+      // First fallback: try extracting JSON block from the content
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/)
+        if (jsonMatch) seoData = JSON.parse(jsonMatch[0])
+      } catch {
+        // Content was too malformed to recover — return empty object
+        // The UI handles missing fields gracefully
+        console.warn('[generate-seo] Could not parse AI response as JSON:', content.slice(0, 300))
+        seoData = {}
+      }
     }
 
     return {
