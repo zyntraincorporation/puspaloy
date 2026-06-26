@@ -724,13 +724,18 @@ function AIDescriptionButton({ productName, category, tags, shortDescription, ha
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productName, category, tags, shortDescription }),
       })
-      if (!res.ok) throw new Error('API Error')
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || `Server error (${res.status})`)
+      }
       const data = await res.json()
       const content = data.choices?.[0]?.message?.content ?? ''
       if (content) { onGenerated(content); toast('✨ Premium description generated!', 'success') }
-      else throw new Error('Empty response')
-    } catch { toast('Failed to generate description. Please try again.', 'error') }
-    finally { setLoading(false) }
+      else throw new Error('AI returned an empty response')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Please try again.'
+      toast(`AI Error: ${msg}`, 'error')
+    } finally { setLoading(false) }
   }
 
   const handleClick = () => {
@@ -781,7 +786,10 @@ function AISeoSection({ form, onChange }: {
           shortDescription: form.shortDescription, htmlDescription: form.htmlDescription,
         }),
       })
-      if (!res.ok) throw new Error('API Error')
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || `Server error (${res.status})`)
+      }
       const data = await res.json()
       const seo = data.seo || {}
 
@@ -800,8 +808,10 @@ function AISeoSection({ form, onChange }: {
 
       setExpanded(true)
       toast('🚀 SEO content generated!', 'success')
-    } catch { toast('Failed to generate SEO. Please try again.', 'error') }
-    finally { setLoading(false) }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Please try again.'
+      toast(`AI Error: ${msg}`, 'error')
+    } finally { setLoading(false) }
   }
 
   const handleClick = () => {

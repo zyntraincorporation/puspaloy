@@ -182,6 +182,19 @@ OUTPUT RULES
     })
 
     const data = await response.json()
+
+    // Propagate OpenRouter errors clearly so the frontend can show the real reason
+    if (!response.ok || (data as Record<string, unknown>).error) {
+      const errObj = (data as Record<string, unknown>).error as Record<string, unknown> | undefined
+      const errMsg = errObj?.message ?? `OpenRouter API error (HTTP ${response.status})`
+      console.error('[generate-description] OpenRouter error:', JSON.stringify(data))
+      return {
+        statusCode: 502,
+        headers: CORS,
+        body: JSON.stringify({ error: errMsg, detail: errObj }),
+      }
+    }
+
     return {
       statusCode: 200,
       headers: CORS,
