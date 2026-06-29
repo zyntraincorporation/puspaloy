@@ -172,6 +172,7 @@ export default function CheckoutPage() {
         status: 'pending' as const,
         source: 'website' as const,
         notes: form.notes.trim() || null,
+        trackingNote: null,
         notificationSent: false,
         notificationError: null,
         statusHistory: [{

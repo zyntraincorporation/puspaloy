@@ -6,6 +6,16 @@
 [functions]
   node_bundler = "esbuild"
 
+# AI functions need more time — increase timeout to 26 seconds (Netlify max)
+[functions."generate-description"]
+  timeout = 26
+
+[functions."generate-seo"]
+  timeout = 26
+
+[functions."steadfast-create-parcel"]
+  timeout = 26
+
 [[redirects]]
   from = "/sitemap.xml"
   to = "/.netlify/functions/sitemap"
@@ -25,3 +35,5 @@
 # OPENROUTER_API_KEY = your_openrouter_api_key
 # TELEGRAM_BOT_TOKEN = your_telegram_bot_token
 # TELEGRAM_CHAT_ID   = your_telegram_chat_id
+# STEADFAST_API_KEY  = your_steadfast_api_key     ← Steadfast Courier
+# STEADFAST_SECRET_KEY = your_steadfast_secret_key ← Steadfast Courier

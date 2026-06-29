@@ -1088,6 +1088,9 @@ export default function ProductForm() {
   const [form, setForm] = useState<FormValues>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [draftSavedAt, setDraftSavedAt] = useState<Date | null>(null)
+  const [previewTab, setPreviewTab] = useState<'google' | 'social'>('google')
+  const [showAddlCats, setShowAddlCats] = useState(false)
+  const [showSocialLinks, setShowSocialLinks] = useState(false)
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const draftKey = getDraftKey(id)
 
@@ -1354,28 +1357,41 @@ export default function ProductForm() {
                 </div>
 
                 <div>
-                  <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">
-                    Additional Categories
-                    <span className="ml-1 text-[10px] text-[var(--text-muted)] font-normal">(optional)</span>
-                  </label>
-                  <div className="max-h-44 overflow-y-auto border border-[var(--border)] rounded-luxury p-2 space-y-1 bg-[var(--bg-surface)]">
-                    {categories.filter(c => !c.archived && c.slug !== 'uncategorized' && c.slug !== form.category).map(c => {
-                      const checked = form.additionalCategories.includes(c.slug)
-                      return (
-                        <label key={c.id} className="flex items-center gap-2.5 cursor-pointer p-1.5 rounded hover:bg-[var(--bg-muted)] transition-colors">
-                          <input type="checkbox" checked={checked}
-                            onChange={(e) => set('additionalCategories', e.target.checked ? [...form.additionalCategories, c.slug] : form.additionalCategories.filter(s => s !== c.slug))}
-                            className="rounded accent-[var(--color-rose)]" />
-                          <span className="font-sans text-sm text-[var(--text-primary)]">{c.icon && !c.icon.startsWith('http') ? c.icon + ' ' : ''}{c.name}</span>
-                        </label>
-                      )
-                    })}
-                    {categories.filter(c => !c.archived && c.slug !== 'uncategorized' && c.slug !== form.category).length === 0 && (
-                      <p className="text-xs text-[var(--text-muted)] p-2">No other categories available.</p>
+                  <button type="button" onClick={() => setShowAddlCats(v => !v)}
+                    className="flex items-center gap-2 w-full text-left">
+                    <span className="font-sans text-sm font-medium text-[var(--text-secondary)]">
+                      Additional Categories
+                      <span className="ml-1 text-[10px] text-[var(--text-muted)] font-normal">(optional)</span>
+                    </span>
+                    {form.additionalCategories.length > 0 && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-sans font-medium bg-rose-100 text-rose-700">
+                        {form.additionalCategories.length} selected
+                      </span>
                     )}
-                  </div>
-                  {form.additionalCategories.length > 0 && (
-                    <p className="font-sans text-xs text-[var(--text-muted)] mt-1.5">✓ Also in: {form.additionalCategories.join(', ')}</p>
+                    <ChevronDown size={14} className={cn('ml-auto text-[var(--text-muted)] transition-transform duration-200', showAddlCats && 'rotate-180')} />
+                  </button>
+                  {showAddlCats && (
+                    <div className="mt-2">
+                      <div className="max-h-44 overflow-y-auto border border-[var(--border)] rounded-luxury p-2 space-y-1 bg-[var(--bg-surface)]">
+                        {categories.filter(c => !c.archived && c.slug !== 'uncategorized' && c.slug !== form.category).map(c => {
+                          const checked = form.additionalCategories.includes(c.slug)
+                          return (
+                            <label key={c.id} className="flex items-center gap-2.5 cursor-pointer p-1.5 rounded hover:bg-[var(--bg-muted)] transition-colors">
+                              <input type="checkbox" checked={checked}
+                                onChange={(e) => set('additionalCategories', e.target.checked ? [...form.additionalCategories, c.slug] : form.additionalCategories.filter(s => s !== c.slug))}
+                                className="rounded accent-[var(--color-rose)]" />
+                              <span className="font-sans text-sm text-[var(--text-primary)]">{c.icon && !c.icon.startsWith('http') ? c.icon + ' ' : ''}{c.name}</span>
+                            </label>
+                          )
+                        })}
+                        {categories.filter(c => !c.archived && c.slug !== 'uncategorized' && c.slug !== form.category).length === 0 && (
+                          <p className="text-xs text-[var(--text-muted)] p-2">No other categories available.</p>
+                        )}
+                      </div>
+                      {form.additionalCategories.length > 0 && (
+                        <p className="font-sans text-xs text-[var(--text-muted)] mt-1.5">✓ Also in: {form.additionalCategories.join(', ')}</p>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -1410,14 +1426,6 @@ export default function ProductForm() {
                   <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">Stock</label>
                   <input type="number" value={form.stock} onChange={(e) => set('stock', e.target.value)} className="input-luxury" placeholder="0" min="0" />
                 </div>
-              </div>
-              <div>
-                <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">Status</label>
-                <select value={form.status} onChange={(e) => set('status', e.target.value as ProductStatus)} className="input-luxury">
-                  <option value="active">Active</option>
-                  <option value="draft">Draft</option>
-                  <option value="out_of_stock">Out of Stock</option>
-                </select>
               </div>
             </div>
 
@@ -1506,30 +1514,57 @@ AI will only use what you write here — never invent.`} />
             {/* ── AI SEO Section ── */}
             <AISeoSection form={form} onChange={(field, value) => set(field, value)} />
 
-            {/* Social Order Links */}
-            <div className="bg-[var(--bg-surface)] rounded-luxury-xl border border-[var(--border)] p-5 space-y-4">
-              <h2 className="font-sans text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Social Order Links</h2>
-              <div>
-                <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">WhatsApp Number</label>
-                <input type="text" value={form.whatsappText} onChange={(e) => set('whatsappText', e.target.value)} className="input-luxury" placeholder="e.g. 8801XXXXXXXXX" />
-              </div>
-              <div>
-                <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">Messenger Page ID</label>
-                <input type="text" value={form.messengerText} onChange={(e) => set('messengerText', e.target.value)} className="input-luxury" placeholder="e.g. puspaloy" />
-              </div>
-              <div>
-                <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5 flex items-center gap-2">
-                  <Video size={14} className="text-red-500" /> YouTube Video ID
-                </label>
-                <input type="text" value={form.youtubeVideoId} onChange={(e) => set('youtubeVideoId', e.target.value)} className="input-luxury font-mono text-sm" placeholder="e.g. dQw4w9WgXcQ (video ID only)" />
-              </div>
+            {/* Social & Video Links — collapsible */}
+            <div className="bg-[var(--bg-surface)] rounded-luxury-xl border border-[var(--border)] overflow-hidden">
+              <button type="button" onClick={() => setShowSocialLinks(v => !v)}
+                className="w-full flex items-center justify-between p-5 hover:bg-[var(--bg-muted)] transition-colors">
+                <h2 className="font-sans text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+                  Social &amp; Video Links
+                </h2>
+                <ChevronDown size={16} className={cn('text-[var(--text-muted)] transition-transform duration-200', showSocialLinks && 'rotate-180')} />
+              </button>
+              {showSocialLinks && (
+                <div className="px-5 pb-5 space-y-4 border-t border-[var(--border)] pt-4">
+                  <div>
+                    <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">WhatsApp Number</label>
+                    <input type="text" value={form.whatsappText} onChange={(e) => set('whatsappText', e.target.value)} className="input-luxury" placeholder="e.g. 8801XXXXXXXXX" />
+                  </div>
+                  <div>
+                    <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">Messenger Page ID</label>
+                    <input type="text" value={form.messengerText} onChange={(e) => set('messengerText', e.target.value)} className="input-luxury" placeholder="e.g. puspaloy" />
+                  </div>
+                  <div>
+                    <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5 flex items-center gap-2">
+                      <Video size={14} className="text-red-500" /> YouTube Video ID
+                    </label>
+                    <input type="text" value={form.youtubeVideoId} onChange={(e) => set('youtubeVideoId', e.target.value)} className="input-luxury font-mono text-sm" placeholder="e.g. dQw4w9WgXcQ (video ID only)" />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           {/* ── Right sidebar ──────────────────────────── */}
           <div className="space-y-5">
 
-            {/* Featured Image */}
+            {/* ① PUBLISH — Status + Save at top for quick access */}
+            <div className="bg-[var(--bg-surface)] rounded-luxury-xl border border-[var(--border)] p-5 space-y-4">
+              <h2 className="font-sans text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider">Publish</h2>
+              <div>
+                <label className="font-sans text-sm font-medium text-[var(--text-secondary)] block mb-1.5">Status</label>
+                <select value={form.status} onChange={(e) => set('status', e.target.value as ProductStatus)} className="input-luxury">
+                  <option value="active">✅ Active — visible to customers</option>
+                  <option value="draft">📝 Draft — hidden from store</option>
+                  <option value="out_of_stock">❌ Out of Stock</option>
+                </select>
+              </div>
+              <motion.button type="submit" whileTap={{ scale: 0.97 }} disabled={saving}
+                className="w-full btn-primary py-3.5 gap-2 text-sm font-semibold">
+                {saving ? <><Loader2 size={15} className="animate-spin" /> Saving...</> : <><Save size={15} /> {isEdit ? 'Save Changes' : '🚀 Publish Product'}</>}
+              </motion.button>
+            </div>
+
+            {/* ② Featured Image */}
             <div className="bg-[var(--bg-surface)] rounded-luxury-xl border border-[var(--border)] p-5">
               <h2 className="font-sans text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-4">Featured Image *</h2>
               <ImageUploader label="" value={form.featuredImage}
@@ -1541,33 +1576,15 @@ AI will only use what you write here — never invent.`} />
               )}
             </div>
 
-            {/* Gallery */}
+            {/* ③ Product Labels — moved up, more important than gallery */}
             <div className="bg-[var(--bg-surface)] rounded-luxury-xl border border-[var(--border)] p-5">
-              <h2 className="font-sans text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-4">Product Gallery</h2>
-              <GalleryUploader images={form.images} onChange={(imgs) => set('images', imgs)} />
-            </div>
-
-            {/* Feature 9: Badge Suggestions */}
-            <BadgeSuggestionsPanel form={form} onChange={(badges) => set('badges', badges)} />
-
-            {/* Feature 3: SEO Score (replaces old SEO Status) */}
-            <SeoScorePanel form={form} />
-
-            {/* Feature 4: Google Search Preview */}
-            <GoogleSearchPreview form={form} />
-
-            {/* Feature 5: Social Share Preview */}
-            <SocialSharePreview form={form} />
-
-            {/* Product Flags */}
-            <div className="bg-[var(--bg-surface)] rounded-luxury-xl border border-[var(--border)] p-5">
-              <h2 className="font-sans text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-4">Product Flags</h2>
+              <h2 className="font-sans text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-4">Product Labels</h2>
               <div className="space-y-3">
                 {([
-                  { key: 'featured',   label: 'Featured Product', desc: 'Show on homepage featured section' },
-                  { key: 'newArrival', label: 'New Arrival',      desc: 'Show in new arrivals section' },
-                  { key: 'bestSeller', label: 'Best Seller',      desc: 'Show in best sellers section' },
-                  { key: 'trending',   label: 'Trending',         desc: 'Show in trending section' },
+                  { key: 'featured',   label: 'Featured',    desc: 'Show in homepage featured section' },
+                  { key: 'newArrival', label: 'New Arrival', desc: 'Show in new arrivals section' },
+                  { key: 'bestSeller', label: 'Best Seller', desc: 'Show in best sellers section' },
+                  { key: 'trending',   label: 'Trending',    desc: 'Show in trending section' },
                 ] as const).map(({ key, label, desc }) => (
                   <label key={key} className="flex items-center gap-3 cursor-pointer group">
                     <div onClick={() => set(key, !form[key])}
@@ -1585,11 +1602,42 @@ AI will only use what you write here — never invent.`} />
               </div>
             </div>
 
-            {/* Save Button */}
-            <motion.button type="submit" whileTap={{ scale: 0.97 }} disabled={saving}
-              className="w-full btn-primary py-4 gap-2 text-base">
-              {saving ? <><Loader2 size={16} className="animate-spin" /> Saving...</> : <><Save size={16} /> {isEdit ? 'Save Changes' : 'Create Product'}</>}
-            </motion.button>
+            {/* ④ Product Gallery */}
+            <div className="bg-[var(--bg-surface)] rounded-luxury-xl border border-[var(--border)] p-5">
+              <h2 className="font-sans text-sm font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-4">Product Gallery</h2>
+              <GalleryUploader images={form.images} onChange={(imgs) => set('images', imgs)} />
+            </div>
+
+            {/* ⑤ Badge Suggestions */}
+            <BadgeSuggestionsPanel form={form} onChange={(badges) => set('badges', badges)} />
+
+            {/* ⑥ SEO Score */}
+            <SeoScorePanel form={form} />
+
+            {/* ⑦ Live Previews — Google + Social in one tabbed card */}
+            <div className="bg-[var(--bg-surface)] rounded-luxury-xl border border-[var(--border)] overflow-hidden">
+              <div className="flex border-b border-[var(--border)]">
+                <button type="button" onClick={() => setPreviewTab('google')}
+                  className={cn('flex-1 py-2.5 font-sans text-xs font-semibold transition-colors',
+                    previewTab === 'google'
+                      ? 'bg-[var(--bg-muted)] text-[var(--text-primary)] border-b-2 border-[var(--color-rose)]'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]')}>
+                  🔍 Google
+                </button>
+                <button type="button" onClick={() => setPreviewTab('social')}
+                  className={cn('flex-1 py-2.5 font-sans text-xs font-semibold transition-colors',
+                    previewTab === 'social'
+                      ? 'bg-[var(--bg-muted)] text-[var(--text-primary)] border-b-2 border-[var(--color-rose)]'
+                      : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]')}>
+                  📱 Social
+                </button>
+              </div>
+              <div className="p-4">
+                {previewTab === 'google'
+                  ? <GoogleSearchPreview form={form} />
+                  : <SocialSharePreview form={form} />}
+              </div>
+            </div>
 
           </div>
         </div>

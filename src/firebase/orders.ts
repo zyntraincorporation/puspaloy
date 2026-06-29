@@ -70,6 +70,29 @@ export async function updateOrderStatus(
   })
 }
 
+/**
+ * Update order status with an optional customer-visible tracking note.
+ * Used by Admin / Moderator from the Order Management panel.
+ */
+export async function updateOrderStatusWithNote(
+  orderId: string,
+  status: OrderStatus,
+  updatedBy: string,
+  trackingNote?: string | null
+): Promise<void> {
+  const { arrayUnion } = await import('firebase/firestore')
+  await updateDoc(doc(db, ORDERS_COL, orderId), {
+    status,
+    trackingNote: trackingNote ?? null,
+    updatedAt: serverTimestamp(),
+    statusHistory: arrayUnion({
+      status,
+      at: new Date(),
+      by: updatedBy,
+    }),
+  })
+}
+
 export async function getOrdersAdmin(
   filters: {
     status?: OrderStatus
@@ -116,6 +139,43 @@ export function subscribeToOrders(
   })
 }
 
+/**
+ * Real-time listener for the MOST RECENT order matching a phone number.
+ * Used by the public tracking page (phone-based search).
+ * Returns at most 1 order (newest by createdAt).
+ */
+export function subscribeToLatestOrderByPhone(
+  phone: string,
+  onUpdate: (order: Order | null) => void
+): Unsubscribe {
+  try {
+    const q = query(
+      collection(db, ORDERS_COL),
+      where('phone', '==', phone),
+      orderBy('createdAt', 'desc'),
+      limit(1)
+    )
+    return onSnapshot(
+      q,
+      (snap) => {
+        if (!snap.empty) {
+          const d = snap.docs[0]
+          onUpdate({ id: d.id, ...d.data() } as Order)
+        } else {
+          onUpdate(null)
+        }
+      },
+      (err) => {
+        console.error('subscribeToLatestOrderByPhone error:', err)
+        onUpdate(null)
+      }
+    )
+  } catch (err) {
+    console.error('subscribeToLatestOrderByPhone setup error:', err)
+    return () => {}
+  }
+}
+
 export function subscribeToOrder(
   orderId: string,
   onUpdate: (order: Order | null) => void
@@ -146,6 +206,21 @@ export function subscribeToOrder(
 export async function markNotificationSent(orderId: string): Promise<void> {
   await updateDoc(doc(db, ORDERS_COL, orderId), {
     notificationSent: true,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+/**
+ * Save courier info onto an existing order document.
+ * Called after a successful parcel creation with any courier provider.
+ * Does NOT create a new collection — extends the same orders/{id} document.
+ */
+export async function saveCourierInfo(
+  orderId: string,
+  courier: import('@/types').CourierInfo
+): Promise<void> {
+  await updateDoc(doc(db, ORDERS_COL, orderId), {
+    courier,
     updatedAt: serverTimestamp(),
   })
 }

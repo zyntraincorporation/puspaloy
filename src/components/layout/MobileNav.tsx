@@ -1,14 +1,14 @@
 // src/components/layout/MobileNav.tsx
 // Thumb-friendly bottom navigation bar for mobile
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Grid3X3, ShoppingBag, Heart, Search } from 'lucide-react'
+import { Home, Grid3X3, ShoppingBag, Heart, Package } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useCartStore } from '@/store/cartStore'
 
 const NAV_ITEMS = [
   { icon: Home, label: 'Home', href: '/' },
   { icon: Grid3X3, label: 'Shop', href: '/catalog' },
-  { icon: Search, label: 'Search', href: '/search' },
+  { icon: Package, label: 'Track', href: '/track-order' },
   { icon: Heart, label: 'Wishlist', href: '/wishlist' },
   { icon: ShoppingBag, label: 'Cart', href: '/cart' },
 ]

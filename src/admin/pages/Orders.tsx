@@ -17,21 +17,41 @@ import {
   CheckCircle2,
   AlertCircle,
   RefreshCw,
+  Truck,
+  ExternalLink,
+  Loader2,
+  Download,
 } from 'lucide-react'
-import { subscribeToOrders, updateOrderStatus } from '@/firebase/orders'
-import type { Order, OrderStatus } from '@/types'
+import { subscribeToOrders, updateOrderStatusWithNote, saveCourierInfo } from '@/firebase/orders'
+import type { Order, OrderStatus, CourierInfo } from '@/types'
 import { formatPrice, formatDateTime } from '@/utils/formatters'
 import { cn } from '@/utils/cn'
 import { useAuth } from '@/contexts/AuthContext'
+import { steadfastService } from '@/lib/courier/steadfast/service'
+import { generateInvoicePDF } from '@/lib/invoice/generateInvoicePDF'
 
-// ── Constants ───────────────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────────────────────────
 const PAGE_SIZE = 20
 
 const ALL_STATUSES: OrderStatus[] = [
   'pending',
   'confirmed',
   'processing',
+  'packed',
   'shipped',
+  'out_for_delivery',
+  'delivered',
+  'cancelled',
+  'returned',
+  'exchange_requested',
+]
+
+const FILTER_STATUSES: OrderStatus[] = [
+  'pending',
+  'confirmed',
+  'packed',
+  'shipped',
+  'out_for_delivery',
   'delivered',
   'cancelled',
 ]
@@ -41,7 +61,7 @@ const STATUS_CONFIG: Record<
   { label: string; bg: string; text: string; dot: string; darkBg: string }
 > = {
   pending: {
-    label: 'Pending',
+    label: 'Order Placed',
     bg: 'bg-yellow-50',
     text: 'text-yellow-700',
     dot: 'bg-yellow-400',
@@ -55,7 +75,14 @@ const STATUS_CONFIG: Record<
     darkBg: 'bg-blue-900/20',
   },
   processing: {
-    label: 'Processing',
+    label: 'Processing (Packed)',
+    bg: 'bg-indigo-50',
+    text: 'text-indigo-700',
+    dot: 'bg-indigo-400',
+    darkBg: 'bg-indigo-900/20',
+  },
+  packed: {
+    label: 'Packed',
     bg: 'bg-indigo-50',
     text: 'text-indigo-700',
     dot: 'bg-indigo-400',
@@ -67,6 +94,13 @@ const STATUS_CONFIG: Record<
     text: 'text-purple-700',
     dot: 'bg-purple-400',
     darkBg: 'bg-purple-900/20',
+  },
+  out_for_delivery: {
+    label: 'Out for Delivery',
+    bg: 'bg-orange-50',
+    text: 'text-orange-700',
+    dot: 'bg-orange-400',
+    darkBg: 'bg-orange-900/20',
   },
   delivered: {
     label: 'Delivered',
@@ -82,9 +116,72 @@ const STATUS_CONFIG: Record<
     dot: 'bg-red-400',
     darkBg: 'bg-red-900/20',
   },
+  returned: {
+    label: 'Returned',
+    bg: 'bg-rose-50',
+    text: 'text-rose-700',
+    dot: 'bg-rose-400',
+    darkBg: 'bg-rose-900/20',
+  },
+  exchange_requested: {
+    label: 'Exchange Requested',
+    bg: 'bg-violet-50',
+    text: 'text-violet-700',
+    dot: 'bg-violet-400',
+    darkBg: 'bg-violet-900/20',
+  },
 }
 
-// ── Status badge (exported so Dashboard can import) ─────────────────────────
+// ── Toast system ─────────────────────────────────────────────────────────────
+type ToastType = 'success' | 'error'
+interface Toast {
+  id: string
+  type: ToastType
+  message: string
+}
+
+function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) {
+  return (
+    <div className="fixed bottom-6 right-6 z-[200] flex flex-col gap-2 pointer-events-none">
+      <AnimatePresence mode="popLayout">
+        {toasts.map((t) => (
+          <motion.div
+            key={t.id}
+            layout
+            initial={{ opacity: 0, x: 60, scale: 0.92 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 60, scale: 0.92 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+            className={cn(
+              'pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-luxury shadow-2xl border max-w-sm',
+              t.type === 'success'
+                ? 'bg-green-50 border-green-200 text-green-800'
+                : 'bg-red-50 border-red-200 text-red-800'
+            )}
+          >
+            {t.type === 'success' ? (
+              <CheckCircle2 size={16} className="text-green-600 flex-shrink-0" />
+            ) : (
+              <AlertCircle size={16} className="text-red-600 flex-shrink-0" />
+            )}
+            <p className="font-sans text-sm flex-1 leading-snug">{t.message}</p>
+            <button
+              onClick={() => onDismiss(t.id)}
+              className={cn(
+                'flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity',
+                t.type === 'success' ? 'text-green-700' : 'text-red-700'
+              )}
+            >
+              <X size={14} />
+            </button>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ── Status badge ─────────────────────────────────────────────────────────────
 export function StatusBadge({ status }: { status: OrderStatus }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending
   return (
@@ -101,33 +198,289 @@ export function StatusBadge({ status }: { status: OrderStatus }) {
   )
 }
 
-// ── Order detail modal ──────────────────────────────────────────────────────
+// ── Courier badge (table) ────────────────────────────────────────────────────
+function CourierBadge({ courier }: { courier?: CourierInfo }) {
+  if (!courier) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-sans font-medium bg-[var(--bg-muted)] text-[var(--text-muted)] whitespace-nowrap">
+        No Courier
+      </span>
+    )
+  }
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-sans font-semibold bg-emerald-50 text-emerald-700 whitespace-nowrap">
+        <Truck size={10} />
+        {courier.provider}
+      </span>
+      <span className="font-mono text-[10px] text-[var(--text-muted)] pl-0.5 truncate max-w-[100px]">
+        {courier.trackingCode}
+      </span>
+    </div>
+  )
+}
+
+// ── Steadfast courier section in modal ───────────────────────────────────────
+interface SteadfastSectionProps {
+  order: Order
+  onParcelCreated: (courier: CourierInfo) => void
+  onToast: (type: ToastType, message: string) => void
+}
+
+function SteadfastSection({ order, onParcelCreated, onToast }: SteadfastSectionProps) {
+  const [creating, setCreating] = useState(false)
+  const [validationError, setValidationError] = useState<string | null>(null)
+
+  const hasParcel = !!order.courier
+
+  const handleCreate = async () => {
+    if (hasParcel || creating) return
+    setValidationError(null)
+    setCreating(true)
+
+    const result = await steadfastService.createParcel({ order })
+
+    if (!result.success) {
+      setCreating(false)
+      setValidationError(result.message)
+      onToast('error', result.message)
+      return
+    }
+
+    // Save to Firestore
+    try {
+      await saveCourierInfo(order.id, result.courier)
+      onParcelCreated(result.courier)
+      onToast('success', `Parcel created! Tracking: ${result.courier.trackingCode}`)
+    } catch (err) {
+      console.error('[SteadfastSection] saveCourierInfo failed:', err)
+      onToast('error', 'Parcel created on Steadfast but failed to save to database. Please note the tracking code manually.')
+      // Still surface the courier info to local state so admin can see it
+      onParcelCreated(result.courier)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  return (
+    <section>
+      <h3 className="font-sans text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-3 flex items-center gap-2">
+        <Truck size={13} className="text-emerald-600" />
+        Steadfast Courier
+      </h3>
+
+      {hasParcel ? (
+        // ── Parcel info ────────────────────────────────────────────────────────
+        <div className="rounded-luxury border border-emerald-200 bg-emerald-50/60 dark:bg-emerald-900/10 dark:border-emerald-800/40 p-4 space-y-3">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center">
+                <CheckCircle2 size={14} className="text-emerald-600" />
+              </div>
+              <div>
+                <p className="font-sans text-xs font-semibold text-emerald-700">Parcel Created</p>
+                <p className="font-sans text-[10px] text-emerald-600/70">
+                  {order.courier!.provider} Courier
+                </p>
+              </div>
+            </div>
+            {/* View Tracking button */}
+            <a
+              href={steadfastService.trackingUrl(order.courier!.trackingCode)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-luxury font-sans text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors duration-200 shadow-sm"
+            >
+              <ExternalLink size={11} />
+              View Tracking
+            </a>
+          </div>
+
+          {/* Details grid */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 pt-2 border-t border-emerald-200/60">
+            <div>
+              <p className="font-sans text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">
+                Parcel ID
+              </p>
+              <p className="font-mono text-xs font-semibold text-[var(--text-primary)]">
+                {order.courier!.parcelId}
+              </p>
+            </div>
+            <div>
+              <p className="font-sans text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">
+                Tracking Code
+              </p>
+              <p className="font-mono text-xs font-semibold text-emerald-700">
+                {order.courier!.trackingCode}
+              </p>
+            </div>
+            <div>
+              <p className="font-sans text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">
+                Consignment ID
+              </p>
+              <p className="font-mono text-xs font-semibold text-[var(--text-primary)]">
+                {order.courier!.consignmentId}
+              </p>
+            </div>
+            <div>
+              <p className="font-sans text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">
+                Courier Status
+              </p>
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700 capitalize">
+                {order.courier!.status}
+              </span>
+            </div>
+            {order.courier!.createdAt && (
+              <div className="col-span-2">
+                <p className="font-sans text-[10px] text-[var(--text-muted)] uppercase tracking-wider mb-0.5">
+                  Created
+                </p>
+                <p className="font-sans text-xs text-[var(--text-secondary)] flex items-center gap-1">
+                  <Clock size={10} className="text-[var(--text-muted)]" />
+                  {(() => {
+                    try {
+                      const ts = order.courier!.createdAt
+                      if (ts && typeof (ts as unknown as { toDate: () => Date }).toDate === 'function') {
+                        return formatDateTime(ts as unknown as { toDate: () => Date })
+                      }
+                    } catch { /* ignore */ }
+                    return 'Just now'
+                  })()}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        // ── Create parcel panel ────────────────────────────────────────────────
+        <div className="rounded-luxury border border-[var(--border)] bg-[var(--bg-muted)] p-4 space-y-3">
+          <p className="font-sans text-sm text-[var(--text-secondary)] leading-relaxed">
+            No courier parcel has been created for this order yet. Click below to send this order to{' '}
+            <strong className="text-[var(--text-primary)]">Steadfast Courier</strong>.
+          </p>
+
+          {/* Validation error */}
+          <AnimatePresence>
+            {validationError && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                className="flex items-start gap-2 px-3 py-2.5 rounded-luxury bg-red-50 border border-red-200 text-red-700"
+              >
+                <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+                <p className="font-sans text-xs leading-snug">{validationError}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* COD preview */}
+          <div className="flex items-center justify-between px-3 py-2 rounded bg-[var(--bg-subtle)] border border-[var(--border)]">
+            <p className="font-sans text-xs text-[var(--text-muted)]">COD Amount (= Order Total)</p>
+            <p className="font-sans text-sm font-bold text-[var(--color-rose)]">
+              {formatPrice(order.total)}
+            </p>
+          </div>
+
+          {/* Create button */}
+          <button
+            onClick={handleCreate}
+            disabled={creating}
+            className={cn(
+              'w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-luxury font-sans text-sm font-semibold transition-all duration-200 shadow-sm',
+              creating
+                ? 'bg-[var(--bg-muted)] text-[var(--text-muted)] cursor-not-allowed border border-[var(--border)]'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+            )}
+          >
+            {creating ? (
+              <>
+                <Loader2 size={15} className="animate-spin" />
+                Creating Parcel…
+              </>
+            ) : (
+              <>
+                <Truck size={15} />
+                Create Steadfast Parcel
+              </>
+            )}
+          </button>
+
+          <p className="font-sans text-[10px] text-[var(--text-muted)] text-center leading-relaxed">
+            This will submit the order to Steadfast Courier API and save the tracking information.
+          </p>
+        </div>
+      )}
+    </section>
+  )
+}
+
+// ── Order detail modal ────────────────────────────────────────────────────────
 interface OrderDetailModalProps {
   order: Order
   onClose: () => void
-  onStatusUpdate: (orderId: string, status: OrderStatus) => Promise<void>
+  onStatusUpdate: (orderId: string, status: OrderStatus, note: string) => Promise<void>
+  onParcelCreated: (orderId: string, courier: CourierInfo) => void
+  onToast: (type: ToastType, message: string) => void
   updatingId: string | null
 }
 
-function OrderDetailModal({ order, onClose, onStatusUpdate, updatingId }: OrderDetailModalProps) {
+function OrderDetailModal({
+  order,
+  onClose,
+  onStatusUpdate,
+  onParcelCreated,
+  onToast,
+  updatingId,
+}: OrderDetailModalProps) {
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus>(order.status)
+  const [trackingNote, setTrackingNote] = useState(order.trackingNote ?? '')
   const [updateSuccess, setUpdateSuccess] = useState(false)
+  const [localOrder, setLocalOrder] = useState<Order>(order)
+  const [isDownloading, setIsDownloading] = useState(false)
   const isUpdating = updatingId === order.id
+
+  // Keep localOrder in sync when parent order changes (e.g. real-time update)
+  useEffect(() => {
+    setLocalOrder(order)
+  }, [order])
 
   const effectiveItemPrice = (item: Order['items'][0]) =>
     item.flashSalePrice ?? item.discountPrice ?? item.price
 
   const handleStatusChange = async () => {
-    if (selectedStatus === order.status) return
-    await onStatusUpdate(order.id, selectedStatus)
+    if (selectedStatus === localOrder.status && trackingNote === (localOrder.trackingNote ?? '')) return
+    await onStatusUpdate(localOrder.id, selectedStatus, trackingNote.trim())
     setUpdateSuccess(true)
-    setTimeout(() => setUpdateSuccess(false), 2000)
+    setTimeout(() => setUpdateSuccess(false), 2500)
   }
+
+  const hasChanges =
+    selectedStatus !== localOrder.status || trackingNote.trim() !== (localOrder.trackingNote ?? '').trim()
 
   const paymentMethodLabel: Record<string, string> = {
     cod: 'Cash on Delivery',
     bkash: 'bKash',
     nagad: 'Nagad',
+  }
+
+  const handleParcelCreated = (courier: CourierInfo) => {
+    setLocalOrder((prev) => ({ ...prev, courier }))
+    onParcelCreated(localOrder.id, courier)
+  }
+
+  const handleDownloadInvoice = async () => {
+    if (isDownloading) return
+    setIsDownloading(true)
+    try {
+      await generateInvoicePDF(localOrder)
+    } catch (err) {
+      console.error('Failed to generate invoice PDF:', err)
+      onToast('error', 'Failed to generate invoice PDF. Please try again.')
+    } finally {
+      setIsDownloading(false)
+    }
   }
 
   return (
@@ -162,13 +515,13 @@ function OrderDetailModal({ order, onClose, onStatusUpdate, updatingId }: OrderD
             <p className="font-sans text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-0.5">
               Order Details
             </p>
-            <h2 className="font-mono text-base font-bold text-[var(--color-rose)]">{order.id}</h2>
+            <h2 className="font-mono text-base font-bold text-[var(--color-rose)]">{localOrder.id}</h2>
             <p className="font-sans text-xs text-[var(--text-muted)] mt-0.5">
-              Placed {order.createdAt ? formatDateTime(order.createdAt) : '—'}
+              Placed {localOrder.createdAt ? formatDateTime(localOrder.createdAt) : '—'}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <StatusBadge status={order.status} />
+            <StatusBadge status={localOrder.status} />
             <button
               onClick={onClose}
               className="btn-ghost p-2 rounded-full ml-1"
@@ -192,33 +545,33 @@ function OrderDetailModal({ order, onClose, onStatusUpdate, updatingId }: OrderD
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-full bg-gradient-luxury flex items-center justify-center flex-shrink-0">
                     <span className="font-sans text-xs font-bold text-white">
-                      {order.customerName?.[0]?.toUpperCase() ?? 'C'}
+                      {localOrder.customerName?.[0]?.toUpperCase() ?? 'C'}
                     </span>
                   </div>
                   <p className="font-sans text-sm font-semibold text-[var(--text-primary)]">
-                    {order.customerName}
+                    {localOrder.customerName}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 text-[var(--text-secondary)]">
                   <Phone size={13} className="text-[var(--text-muted)]" />
-                  <span className="font-sans text-sm">{order.phone}</span>
+                  <span className="font-sans text-sm">{localOrder.phone}</span>
                 </div>
-                {order.email && (
+                {localOrder.email && (
                   <div className="flex items-center gap-2 text-[var(--text-secondary)]">
                     <Mail size={13} className="text-[var(--text-muted)]" />
-                    <span className="font-sans text-sm">{order.email}</span>
+                    <span className="font-sans text-sm">{localOrder.email}</span>
                   </div>
                 )}
                 <div className="flex items-start gap-2 text-[var(--text-secondary)]">
                   <MapPin size={13} className="text-[var(--text-muted)] mt-0.5 flex-shrink-0" />
                   <span className="font-sans text-sm leading-snug">
-                    {order.address}, {order.district}
+                    {localOrder.address}, {localOrder.district}
                   </span>
                 </div>
-                {order.notes && (
+                {localOrder.notes && (
                   <div className="mt-2 pt-2 border-t border-[var(--border)]">
                     <p className="font-sans text-xs text-[var(--text-muted)] mb-1">Note from customer:</p>
-                    <p className="font-sans text-sm text-[var(--text-secondary)] italic">"{order.notes}"</p>
+                    <p className="font-sans text-sm text-[var(--text-secondary)] italic">"{localOrder.notes}"</p>
                   </div>
                 )}
               </div>
@@ -227,15 +580,14 @@ function OrderDetailModal({ order, onClose, onStatusUpdate, updatingId }: OrderD
             {/* Order items */}
             <section>
               <h3 className="font-sans text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-3">
-                Items ({order.items?.length ?? 0})
+                Items ({localOrder.items?.length ?? 0})
               </h3>
               <div className="space-y-2">
-                {order.items?.map((item, i) => (
+                {localOrder.items?.map((item, i) => (
                   <div
                     key={`${item.productId}-${i}`}
                     className="flex items-center gap-3 rounded-luxury border border-[var(--border)] bg-[var(--bg-muted)] p-3"
                   >
-                    {/* Product image */}
                     {item.featuredImage ? (
                       <img
                         src={item.featuredImage}
@@ -272,37 +624,37 @@ function OrderDetailModal({ order, onClose, onStatusUpdate, updatingId }: OrderD
               <div className="rounded-luxury border border-[var(--border)] bg-[var(--bg-muted)] p-4 space-y-2">
                 <div className="flex justify-between font-sans text-sm text-[var(--text-secondary)]">
                   <span>Subtotal</span>
-                  <span>{formatPrice(order.subtotal)}</span>
+                  <span>{formatPrice(localOrder.subtotal)}</span>
                 </div>
-                {order.couponDiscount > 0 && (
+                {localOrder.couponDiscount > 0 && (
                   <div className="flex justify-between font-sans text-sm text-green-600">
                     <span>
                       Coupon
-                      {order.couponCode && (
+                      {localOrder.couponCode && (
                         <span className="ml-1.5 inline-flex px-1.5 py-0.5 rounded bg-green-50 text-green-700 text-xs font-mono">
-                          {order.couponCode}
+                          {localOrder.couponCode}
                         </span>
                       )}
                     </span>
-                    <span>−{formatPrice(order.couponDiscount)}</span>
+                    <span>−{formatPrice(localOrder.couponDiscount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-sans text-sm text-[var(--text-secondary)]">
                   <span>Delivery</span>
                   <span>
-                    {order.deliveryCharge === 0
+                    {localOrder.deliveryCharge === 0
                       ? <span className="text-green-600 font-semibold">Free</span>
-                      : formatPrice(order.deliveryCharge)}
+                      : formatPrice(localOrder.deliveryCharge)}
                   </span>
                 </div>
                 <div className="pt-2 border-t border-[var(--border)] flex justify-between font-sans text-base font-bold text-[var(--text-primary)]">
                   <span>Total</span>
-                  <span className="text-[var(--color-rose)]">{formatPrice(order.total)}</span>
+                  <span className="text-[var(--color-rose)]">{formatPrice(localOrder.total)}</span>
                 </div>
                 <div className="pt-1 flex justify-between font-sans text-xs text-[var(--text-muted)]">
                   <span>Payment Method</span>
                   <span className="capitalize">
-                    {paymentMethodLabel[order.paymentMethod] ?? order.paymentMethod}
+                    {paymentMethodLabel[localOrder.paymentMethod] ?? localOrder.paymentMethod}
                   </span>
                 </div>
                 <div className="flex justify-between font-sans text-xs text-[var(--text-muted)]">
@@ -310,23 +662,47 @@ function OrderDetailModal({ order, onClose, onStatusUpdate, updatingId }: OrderD
                   <span
                     className={cn(
                       'capitalize font-semibold',
-                      order.paymentStatus === 'paid' ? 'text-green-600' : 'text-yellow-600'
+                      localOrder.paymentStatus === 'paid' ? 'text-green-600' : 'text-yellow-600'
                     )}
                   >
-                    {order.paymentStatus}
+                    {localOrder.paymentStatus}
                   </span>
                 </div>
               </div>
             </section>
 
+            {/* ── Steadfast Courier section ── */}
+            <SteadfastSection
+              order={localOrder}
+              onParcelCreated={handleParcelCreated}
+              onToast={onToast}
+            />
+
+            {/* Current tracking note */}
+            {localOrder.trackingNote && (
+              <section>
+                <h3 className="font-sans text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-3">
+                  Current Tracking Note
+                </h3>
+                <div className="rounded-luxury border border-[var(--color-gold)]/30 bg-[var(--color-gold)]/5 p-3">
+                  <p className="font-sans text-sm text-[var(--text-secondary)] italic leading-relaxed">
+                    "{localOrder.trackingNote}"
+                  </p>
+                  <p className="font-sans text-[10px] text-[var(--text-muted)] mt-1.5">
+                    Visible to customer on tracking page
+                  </p>
+                </div>
+              </section>
+            )}
+
             {/* Status history */}
-            {order.statusHistory && order.statusHistory.length > 0 && (
+            {localOrder.statusHistory && localOrder.statusHistory.length > 0 && (
               <section>
                 <h3 className="font-sans text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-3">
                   Status History
                 </h3>
                 <div className="space-y-2">
-                  {[...order.statusHistory].reverse().map((hist, i) => {
+                  {[...localOrder.statusHistory].reverse().map((hist, i) => {
                     const cfg = STATUS_CONFIG[hist.status] ?? STATUS_CONFIG.pending
                     return (
                       <div
@@ -334,7 +710,7 @@ function OrderDetailModal({ order, onClose, onStatusUpdate, updatingId }: OrderD
                         className="flex items-center gap-3 font-sans text-sm"
                       >
                         <span className={cn('w-2 h-2 rounded-full flex-shrink-0', cfg.dot)} />
-                        <span className={cn('font-semibold', cfg.text, 'w-24 flex-shrink-0')}>
+                        <span className={cn('font-semibold', cfg.text, 'w-28 flex-shrink-0')}>
                           {cfg.label}
                         </span>
                         <span className="text-[var(--text-muted)] text-xs">
@@ -355,8 +731,9 @@ function OrderDetailModal({ order, onClose, onStatusUpdate, updatingId }: OrderD
         </div>
 
         {/* Status update footer */}
-        <div className="flex-shrink-0 border-t border-[var(--border)] p-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <div className="flex-1">
+        <div className="flex-shrink-0 border-t border-[var(--border)] p-4 space-y-3">
+          {/* Status selector */}
+          <div>
             <label className="font-sans text-xs font-semibold text-[var(--text-muted)] block mb-1.5">
               Update Status
             </label>
@@ -373,38 +750,80 @@ function OrderDetailModal({ order, onClose, onStatusUpdate, updatingId }: OrderD
               ))}
             </select>
           </div>
-          <button
-            onClick={handleStatusChange}
-            disabled={isUpdating || selectedStatus === order.status}
-            className={cn(
-              'btn-primary sm:w-auto sm:self-end py-2.5 px-5 text-sm',
-              updateSuccess && 'bg-green-500 hover:bg-green-500'
-            )}
-          >
-            {isUpdating ? (
-              <>
-                <RefreshCw size={14} className="animate-spin" />
-                Updating…
-              </>
-            ) : updateSuccess ? (
-              <>
-                <CheckCircle2 size={14} />
-                Updated!
-              </>
-            ) : (
-              <>
-                <CheckCircle2 size={14} />
-                Update Status
-              </>
-            )}
-          </button>
+
+          {/* Tracking note */}
+          <div>
+            <label className="font-sans text-xs font-semibold text-[var(--text-muted)] block mb-1.5">
+              Tracking Note{' '}
+              <span className="font-normal text-[var(--text-muted)] normal-case tracking-normal">
+                (optional · shown to customer)
+              </span>
+            </label>
+            <textarea
+              value={trackingNote}
+              onChange={(e) => setTrackingNote(e.target.value)}
+              disabled={isUpdating}
+              placeholder="e.g. Courier has received the parcel. Package reached Dhaka hub."
+              rows={2}
+              className="input-luxury py-2 text-sm resize-none w-full"
+            />
+          </div>
+
+          {/* Action row */}
+          <div className="flex items-center justify-between gap-3">
+            {/* Download Invoice PDF */}
+            <button
+              onClick={handleDownloadInvoice}
+              disabled={isDownloading}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-luxury border border-[var(--color-rose)] text-[var(--color-rose)] font-sans text-sm font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDownloading ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  Generating…
+                </>
+              ) : (
+                <>
+                  <Download size={14} />
+                  Download Invoice PDF
+                </>
+              )}
+            </button>
+
+            {/* Save status changes */}
+            <button
+              onClick={handleStatusChange}
+              disabled={isUpdating || !hasChanges}
+              className={cn(
+                'btn-primary py-2.5 px-6 text-sm',
+                updateSuccess && 'bg-green-500 hover:bg-green-500'
+              )}
+            >
+              {isUpdating ? (
+                <>
+                  <RefreshCw size={14} className="animate-spin" />
+                  Saving…
+                </>
+              ) : updateSuccess ? (
+                <>
+                  <CheckCircle2 size={14} />
+                  Saved!
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={14} />
+                  Save Changes
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </motion.div>
     </motion.div>
   )
 }
 
-// ── Status filter tab ───────────────────────────────────────────────────────
+// ── Status filter tab ─────────────────────────────────────────────────────────
 function StatusTab({
   label,
   count,
@@ -439,7 +858,7 @@ function StatusTab({
   )
 }
 
-// ── Main Orders component ───────────────────────────────────────────────────
+// ── Main Orders component ─────────────────────────────────────────────────────
 export default function Orders() {
   const { adminUser } = useAuth()
   const [allOrders, setAllOrders] = useState<Order[]>([])
@@ -450,8 +869,20 @@ export default function Orders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [updateError, setUpdateError] = useState<string | null>(null)
+  const [toasts, setToasts] = useState<Toast[]>([])
 
-  // Real-time subscription (last 500 for admin)
+  // ── Toast helpers ────────────────────────────────────────────────────────────
+  const addToast = useCallback((type: ToastType, message: string) => {
+    const id = crypto.randomUUID()
+    setToasts((prev) => [...prev, { id, type, message }])
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 5000)
+  }, [])
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id))
+  }, [])
+
+  // Real-time subscription
   useEffect(() => {
     const unsub = subscribeToOrders((orders) => {
       setAllOrders(orders)
@@ -460,7 +891,7 @@ export default function Orders() {
     return unsub
   }, [])
 
-  // Reset page when filter/search changes
+  // Reset page on filter/search change
   useEffect(() => {
     setPage(1)
   }, [filterStatus, search])
@@ -501,20 +932,26 @@ export default function Orders() {
 
   // Status update handler
   const handleStatusUpdate = useCallback(
-    async (orderId: string, status: OrderStatus) => {
+    async (orderId: string, status: OrderStatus, trackingNote: string) => {
       setUpdatingId(orderId)
       setUpdateError(null)
       try {
-        await updateOrderStatus(orderId, status, adminUser?.name ?? adminUser?.email ?? 'admin')
-        // Update in local state immediately for snappy UX
+        await updateOrderStatusWithNote(
+          orderId,
+          status,
+          adminUser?.name ?? adminUser?.email ?? 'admin',
+          trackingNote || null
+        )
         setAllOrders((prev) =>
-          prev.map((o) => (o.id === orderId ? { ...o, status } : o))
+          prev.map((o) => (o.id === orderId ? { ...o, status, trackingNote: trackingNote || null } : o))
         )
         if (selectedOrder?.id === orderId) {
-          setSelectedOrder((prev) => prev ? { ...prev, status } : prev)
+          setSelectedOrder((prev) =>
+            prev ? { ...prev, status, trackingNote: trackingNote || null } : prev
+          )
         }
       } catch (err) {
-        setUpdateError('Failed to update status. Please try again.')
+        setUpdateError('Failed to update. Please try again.')
         console.error(err)
       } finally {
         setUpdatingId(null)
@@ -522,6 +959,14 @@ export default function Orders() {
     },
     [adminUser, selectedOrder]
   )
+
+  // Parcel created handler — updates both allOrders list and selectedOrder
+  const handleParcelCreated = useCallback((orderId: string, courier: CourierInfo) => {
+    setAllOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, courier } : o))
+    )
+    setSelectedOrder((prev) => (prev && prev.id === orderId ? { ...prev, courier } : prev))
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -563,7 +1008,6 @@ export default function Orders() {
 
       {/* ── Filters + search ── */}
       <div className="rounded-luxury-lg border border-[var(--border)] bg-[var(--bg-surface)] p-4 space-y-4">
-        {/* Status tabs — horizontally scrollable on mobile */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
           <StatusTab
             label="All"
@@ -571,7 +1015,7 @@ export default function Orders() {
             active={filterStatus === 'all'}
             onClick={() => setFilterStatus('all')}
           />
-          {ALL_STATUSES.map((s) => (
+          {FILTER_STATUSES.map((s) => (
             <StatusTab
               key={s}
               label={STATUS_CONFIG[s].label}
@@ -582,7 +1026,6 @@ export default function Orders() {
           ))}
         </div>
 
-        {/* Search input */}
         <div className="relative">
           <Search
             size={15}
@@ -643,10 +1086,10 @@ export default function Orders() {
           <>
             {/* Table */}
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px]">
+              <table className="w-full min-w-[840px]">
                 <thead>
                   <tr className="border-b border-[var(--border)]">
-                    {['Order ID', 'Customer', 'Items', 'Total', 'Status', 'Date', 'Actions'].map(
+                    {['Order ID', 'Customer', 'Items', 'Total', 'Status', 'Courier', 'Date', 'Actions'].map(
                       (h) => (
                         <th
                           key={h}
@@ -705,6 +1148,11 @@ export default function Orders() {
                           <StatusBadge status={order.status} />
                         </td>
 
+                        {/* Courier */}
+                        <td className="px-5 py-3.5">
+                          <CourierBadge courier={order.courier} />
+                        </td>
+
                         {/* Date */}
                         <td className="px-5 py-3.5">
                           <span className="font-sans text-xs text-[var(--text-muted)]">
@@ -745,7 +1193,6 @@ export default function Orders() {
                     <ChevronLeft size={16} />
                   </button>
 
-                  {/* Page number pills */}
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter(
                       (p) =>
@@ -814,10 +1261,15 @@ export default function Orders() {
             order={selectedOrder}
             onClose={() => setSelectedOrder(null)}
             onStatusUpdate={handleStatusUpdate}
+            onParcelCreated={handleParcelCreated}
+            onToast={addToast}
             updatingId={updatingId}
           />
         )}
       </AnimatePresence>
+
+      {/* ── Toast notifications ── */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }

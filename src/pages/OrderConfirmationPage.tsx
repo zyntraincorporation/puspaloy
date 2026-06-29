@@ -1,5 +1,5 @@
 // src/pages/OrderConfirmationPage.tsx
-// Success page: order details, countdown redirect, invoice download/print
+// Success page: order details, countdown redirect, invoice download
 import { useEffect, useState } from 'react'
 import SEO from '@/components/shared/SEO'
 import { useParams, useNavigate, Link } from 'react-router-dom'
@@ -14,7 +14,7 @@ import { formatPrice } from '@/utils/formatters'
 import type { Order } from '@/types'
 import { staggerContainer, fadeInUp } from '@/lib/animations'
 
-const REDIRECT_SECONDS = 30
+const REDIRECT_SECONDS = 120
 
 // ── Status color map ───────────────────────────────────────
 const STATUS_BADGE: Record<string, { label: string; color: string }> = {
@@ -153,9 +153,9 @@ export default function OrderConfirmationPage() {
     <>
       <SEO title={`Order Confirmed — ${order.id}`} noindex />
 
-      {/* print-scope: this entire section is the only thing visible when printing */}
+      {/* Order confirmation page */}
       <div
-        className="print-scope min-h-screen"
+        className="min-h-screen"
         style={{ backgroundColor: 'var(--bg-primary)' }}
       >
         <div className="container-luxury py-8 lg:py-12">
@@ -166,7 +166,7 @@ export default function OrderConfirmationPage() {
             className="max-w-3xl mx-auto"
           >
             {/* ── Success Hero ──────────────────────────────── */}
-            <motion.div variants={fadeInUp} className="text-center mb-10 no-print">
+            <motion.div variants={fadeInUp} className="text-center mb-10">
               {/* Animated checkmark */}
               <motion.div
                 initial={{ scale: 0 }}
@@ -212,7 +212,7 @@ export default function OrderConfirmationPage() {
             {/* ── Order Detail Card ─────────────────────────── */}
             <motion.div
               variants={fadeInUp}
-              className="bg-[var(--bg-surface)] rounded-luxury-xl border border-[var(--border)] overflow-hidden mb-6 no-print"
+              className="bg-[var(--bg-surface)] rounded-luxury-xl border border-[var(--border)] overflow-hidden mb-6"
             >
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] bg-[var(--bg-muted)]">
@@ -280,7 +280,7 @@ export default function OrderConfirmationPage() {
             {/* ── Delivery Info ─────────────────────────────── */}
             <motion.div
               variants={fadeInUp}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 no-print"
+              className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6"
             >
               <div className="bg-[var(--bg-surface)] rounded-luxury-xl border border-[var(--border)] p-4">
                 <p className="font-sans text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3 flex items-center gap-1.5">
@@ -300,7 +300,7 @@ export default function OrderConfirmationPage() {
             </motion.div>
 
             {/* ── What happens next ─────────────────────────── */}
-            <motion.div variants={fadeInUp} className="bg-[var(--bg-muted)] rounded-luxury-xl p-5 mb-8 no-print">
+            <motion.div variants={fadeInUp} className="bg-[var(--bg-muted)] rounded-luxury-xl p-5 mb-8">
               <h3 className="font-sans text-sm font-semibold text-[var(--text-primary)] mb-3">What happens next?</h3>
               <div className="space-y-2.5">
                 {[
@@ -321,7 +321,7 @@ export default function OrderConfirmationPage() {
             <motion.div variants={fadeInUp} className="mb-8">
               <button
                 onClick={() => setShowInvoice(!showInvoice)}
-                className="w-full flex items-center justify-between px-5 py-4 rounded-luxury-xl border border-[var(--border)] bg-[var(--bg-surface)] hover:border-[var(--color-rose)] transition-colors no-print"
+                className="w-full flex items-center justify-between px-5 py-4 rounded-luxury-xl border border-[var(--border)] bg-[var(--bg-surface)] hover:border-[var(--color-rose)] transition-colors"
               >
                 <span className="font-sans text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
                   <Package size={15} className="text-[var(--color-rose)]" />
@@ -351,7 +351,7 @@ export default function OrderConfirmationPage() {
             </motion.div>
 
             {/* ── Navigation CTAs ───────────────────────────── */}
-            <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-3 no-print">
+            <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-3">
               <Link to="/" className="btn-primary flex-1 justify-center gap-2 py-4">
                 <Home size={16} />
                 Back to Home

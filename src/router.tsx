@@ -17,6 +17,7 @@ const CartPage = lazy(() => import('@/pages/CartPage'))
 const CheckoutPage = lazy(() => import('@/pages/CheckoutPage'))
 const OrderConfirmationPage = lazy(() => import('@/pages/OrderConfirmationPage'))
 const WishlistPage = lazy(() => import('@/pages/WishlistPage'))
+const TrackOrderPage = lazy(() => import('@/pages/TrackOrderPage'))
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'))
 
 // ── Admin pages (lazy loaded, auth-gated) ───────────────
@@ -49,6 +50,8 @@ export default function AppRouter() {
           <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/order-confirmation/:orderId" element={<OrderConfirmationPage />} />
           <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/track-order" element={<TrackOrderPage />} />
+          <Route path="/track-order/:orderId" element={<TrackOrderPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
 

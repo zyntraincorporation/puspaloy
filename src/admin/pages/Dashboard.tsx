@@ -84,6 +84,30 @@ const STATUS_CONFIG: Record<
     text: 'text-red-700',
     dot: 'bg-red-400',
   },
+  packed: {
+    label: 'Packed',
+    bg: 'bg-indigo-50',
+    text: 'text-indigo-700',
+    dot: 'bg-indigo-400',
+  },
+  out_for_delivery: {
+    label: 'Out for Delivery',
+    bg: 'bg-orange-50',
+    text: 'text-orange-700',
+    dot: 'bg-orange-400',
+  },
+  returned: {
+    label: 'Returned',
+    bg: 'bg-rose-50',
+    text: 'text-rose-700',
+    dot: 'bg-rose-400',
+  },
+  exchange_requested: {
+    label: 'Exchange Requested',
+    bg: 'bg-violet-50',
+    text: 'text-violet-700',
+    dot: 'bg-violet-400',
+  },
 }
 
 export function StatusBadge({ status }: { status: OrderStatus }) {

@@ -10,7 +10,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ShoppingBag, Heart, Search, Menu, X,
-  Sun, Moon, ChevronDown, ChevronRight, Home,
+  Sun, Moon, ChevronDown, ChevronRight, Home, Package,
 } from 'lucide-react'
 import { useCartStore } from '@/store/cartStore'
 import { useWishlistStore } from '@/store/wishlistStore'
@@ -317,6 +317,16 @@ export default function Navbar() {
 
             {/* ── Actions ──────────────────────────────────────────── */}
             <div className="flex items-center gap-1 ml-auto shrink-0">
+
+              {/* Track Order — desktop only */}
+              <Link
+                to="/track-order"
+                className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl font-sans text-sm font-semibold text-[var(--color-gold)] border border-[var(--color-gold)]/40 hover:bg-[var(--color-gold)]/10 hover:border-[var(--color-gold)] transition-all duration-200 mr-1"
+                aria-label="Track Order"
+              >
+                <Package size={15} />
+                Track Order
+              </Link>
 
               {/* Search */}
               <button

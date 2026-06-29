@@ -42,7 +42,7 @@ const FALLBACK = {
 
 const INFO_LINKS = [
   { label: 'About PUSPALOY', href: '/#brand-story' },
-  { label: 'Track Your Order', href: '/search' },
+  { label: '📦 Track Order', href: '/track-order' },
   { label: 'Return Policy', href: '/#return-policy' },
   { label: 'Privacy Policy', href: '/#privacy-policy' },
 ]

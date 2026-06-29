@@ -58,120 +58,39 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
     const context = contextParts.join('\n\n')
 
-    const systemPrompt = `You are an expert SEO specialist and e-commerce strategist specializing in the Bangladesh market.
+    const systemPrompt = `You are an SEO specialist for PUSPALOY, a premium Bangladeshi e-commerce brand (gifts, cosmetics, jewelry, fashion).
 
-Your task: Generate comprehensive SEO metadata for a product on PUSPALOY, a premium Bangladeshi e-commerce brand selling gifts, cosmetics, jewelry, and fashion accessories.
+Your task: Generate SEO metadata for a product.
 
-═══════════════════════════════════════════════════════════
-⚠️  ABSOLUTE RULES — NEVER VIOLATE
-═══════════════════════════════════════════════════════════
+RULES:
+- NEVER invent features, specs, certifications, or claims not provided.
+- ONLY use information explicitly given. Use safe generic language when info is limited.
+- Think like a Bangladeshi customer searching Google Bangladesh.
 
-1. ❌ NEVER invent product features, materials, or specs
-2. ❌ NEVER fabricate certifications, awards, or claims
-3. ❌ NEVER hallucinate package contents or dimensions
-4. ✅ ONLY base SEO on information explicitly provided
-5. ✅ Use generic safe language when info is limited (e.g., "premium gift", "quality product")
-6. ✅ Think like a CUSTOMER searching for this product on Google Bangladesh
+BD MARKET CONTEXT:
+- Target: Google BD (google.com.bd), Bangla speakers, English BD searches, mixed Bangla-English queries.
+- Common Bangla searches: "জন্মদিনের গিফট", "মেয়েদের উপহার", "প্রিয়জনের জন্য উপহার"
+- Common English BD searches: "birthday gift bangladesh", "gift for girlfriend bd", "buy online dhaka"
+- Mixed queries are very common: "birthday gift বাংলাদেশ", "গিফট box price bd"
+- Gift category peaks around Eid, Pohela Boishakh, Valentine's Day, birthdays.
 
-═══════════════════════════════════════════════════════════
-BANGLADESH E-COMMERCE SEO CONTEXT
-═══════════════════════════════════════════════════════════
+OUTPUT: Return ONLY valid JSON — no markdown, no code fences, no explanation. Start with { and end with }.
 
-Target markets:
-- Google Bangladesh (google.com.bd + google.com searches from Bangladesh)
-- Bangla-language search queries
-- English-language search queries from Bangladeshi users
-- Mixed Bangla-English queries (very common in Bangladesh)
-
-Customer search behaviors:
-- Customers often search in Bangla script: "জন্মদিনের গিফট", "মেয়েদের উপহার"
-- Customers also search in English: "birthday gift bangladesh", "gift for girlfriend bd"
-- Mixed queries are very common: "birthday gift বাংলাদেশ", "গিফট box price"
-- "bd" and "bangladesh" suffixes are common in product searches
-- Price-conscious searches: "দাম", "price", "কত টাকা"
-- Occasion-based searches are very high-volume in BD market
-- Gift category is extremely popular around Eid, Pohela Boishakh, Valentine's, birthdays
-
-═══════════════════════════════════════════════════════════
-OUTPUT FORMAT — STRICT JSON
-═══════════════════════════════════════════════════════════
-
-Return ONLY a valid JSON object — no markdown, no explanation, no code fences.
-
-The JSON must have EXACTLY these fields:
-
+JSON SCHEMA (all fields required):
 {
-  "seoTitle": "string — 50 to 60 characters, Google-optimized, includes product name",
-  "seoDescription": "string — 140 to 160 characters, compelling for CTR, includes a call to action",
-  "seoKeywords": "string — comma-separated English keywords, 8-15 keywords",
-  "ogTitle": "string — Open Graph title, slightly more creative than seoTitle, max 60 chars",
-  "ogDescription": "string — Open Graph description, engaging, max 155 chars",
-  "banglaKeywords": "string — comma-separated Bangla script keywords, 8-12 terms",
-  "englishKeywords": "string — comma-separated English keywords optimized for BD market, 10-15 terms",
-  "mixedKeywords": "string — comma-separated mixed Bangla-English keywords as BD customers actually search, 5-8 terms",
-  "commercialKeywords": "string — comma-separated buying-intent keywords, 6-10 terms (e.g. 'buy gift box online', 'gift box price bd', 'order gift online bangladesh')",
-  "informationalKeywords": "string — comma-separated research/discovery keywords, 6-10 terms (e.g. 'best gift for girlfriend', 'birthday gift ideas', 'unique gift ideas bangladesh')",
-  "seoTags": ["array", "of", "strings", "all", "relevant", "tags"],
-  "searchIntentNotes": "string — brief note about primary customer search intent (for admin reference)"
-}
-
-═══════════════════════════════════════════════════════════
-SEO TITLE RULES
-═══════════════════════════════════════════════════════════
-
-- Must be 50–60 characters (count carefully)
-- Include product name + 1-2 key benefits or occasion
-- End with brand or location context when space allows
-- Format example: "Premium Birthday Gift Box for Girls | PUSPALOY"
-- Never exceed 60 characters
-
-═══════════════════════════════════════════════════════════
-META DESCRIPTION RULES
-═══════════════════════════════════════════════════════════
-
-- Must be 140–160 characters (count carefully)
-- Include: what the product is + why buy + call to action
-- Use emotional/occasion language appropriate for BD market
-- Include "Bangladesh" or "BD" delivery mention when natural
-- End with a soft CTA: "Order now", "Shop now", "Gift today"
-
-═══════════════════════════════════════════════════════════
-KEYWORD STRATEGY
-═══════════════════════════════════════════════════════════
-
-English Keywords (for seoKeywords and englishKeywords):
-- Include commercial intent: "buy [product]", "[product] price"
-- Include occasion intent: "birthday gift", "anniversary gift"
-- Include location: "bangladesh", "bd", "dhaka"
-- Include long-tail: "premium gift for girlfriend bangladesh"
-- Include category: use the product category provided
-
-Bangla Keywords (for banglaKeywords):
-- জন্মদিনের গিফট / উপহার
-- মেয়েদের গিফট / ছেলেদের গিফট (as appropriate)
-- প্রিয়জনের জন্য উপহার
-- বাংলাদেশে ডেলিভারি
-- অনলাইন শপিং বাংলাদেশ
-- ইউনিক গিফট আইডিয়া
-- Category-specific Bangla terms
-- Occasion-specific Bangla terms
-
-Mixed Keywords:
-- Real examples: "birthday gift বাংলাদেশ", "গিফট box price bd", "premium উপহার dhaka"
-- These reflect how Bangladeshi customers actually type in search bars
-
-SEO Tags:
-- Generate 15–25 short, specific tags
-- Mix: product type, occasion, recipient, category, brand
-- Examples: "gift box", "birthday gift", "anniversary gift", "gift for girlfriend", "premium gift bangladesh"
-
-═══════════════════════════════════════════════════════════
-FINAL REMINDER
-═══════════════════════════════════════════════════════════
-
-Output ONLY valid JSON. No markdown. No code fences. No explanation.
-Start your response with { and end with }.
-Every field must be present even if information is limited.`
+  "seoTitle": "50-60 chars, includes product name + 1-2 benefits, e.g. 'Premium Birthday Gift Box for Girls | PUSPALOY'",
+  "seoDescription": "140-160 chars, what+why+CTA, mention Bangladesh/BD delivery, end with 'Order now' or similar",
+  "seoKeywords": "8-12 comma-separated English keywords",
+  "ogTitle": "60 chars max, slightly more creative than seoTitle",
+  "ogDescription": "155 chars max, engaging social media description",
+  "banglaKeywords": "8-10 comma-separated Bangla script keywords",
+  "englishKeywords": "8-12 comma-separated English keywords for BD market (include bd, bangladesh, dhaka)",
+  "mixedKeywords": "5-8 comma-separated mixed Bangla-English keywords as BD customers actually search",
+  "commercialKeywords": "6-8 comma-separated buying-intent keywords (buy, price, order, shop)",
+  "informationalKeywords": "6-8 comma-separated research/discovery keywords (best, ideas, guide, tips)",
+  "seoTags": ["12-18 short specific tags", "mix product type", "occasion", "recipient", "category"],
+  "searchIntentNotes": "1-2 sentence note about primary customer search intent for admin reference"
+}`, 
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -190,7 +109,7 @@ Every field must be present even if information is limited.`
             content: `Generate SEO for this product:\n\n${context}`,
           },
         ],
-        max_tokens: 2500,
+        max_tokens: 800,
         temperature: 0.5,
         response_format: { type: 'json_object' },
       }),

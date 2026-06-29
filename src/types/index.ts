@@ -112,9 +112,33 @@ export interface Category {
 }
 
 // ────────────────────────────────────────────────────────
+// COURIER
+// ────────────────────────────────────────────────────────
+export type CourierProvider = 'Steadfast' | 'Pathao' | 'RedX' | 'Paperfly'
+
+export interface CourierInfo {
+  provider: CourierProvider
+  parcelId: string
+  trackingCode: string
+  consignmentId: string
+  status: string
+  createdAt: Timestamp
+}
+
+// ────────────────────────────────────────────────────────
 // ORDER
 // ────────────────────────────────────────────────────────
-export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+export type OrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'processing'
+  | 'packed'
+  | 'shipped'
+  | 'out_for_delivery'
+  | 'delivered'
+  | 'cancelled'
+  | 'returned'
+  | 'exchange_requested'
 export type OrderSource = 'website' | 'ai_assistant'
 export type PaymentMethod = 'cod' | 'bkash' | 'nagad'
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded'
@@ -153,9 +177,11 @@ export interface Order {
   status: OrderStatus
   source: OrderSource
   notes: string | null
+  trackingNote: string | null
   notificationSent: boolean
   notificationError: string | null
   statusHistory: StatusHistory[]
+  courier?: CourierInfo
   createdAt: Timestamp
   updatedAt: Timestamp
 }
